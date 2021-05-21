@@ -1,4 +1,4 @@
-//smartnet_decode.h
+// smartnet_decode.h
 /* -*- c++ -*- */
 /*
  * Copyright 2004 Free Software Foundation, Inc.
@@ -48,7 +48,8 @@ typedef boost::shared_ptr<smartnet_decode> smartnet_decode_sptr;
  * constructor is private.  smartnet_make_decode is the public
  * interface for creating new instances.
  */
-smartnet_decode_sptr smartnet_make_decode(gr::msg_queue::sptr queue, int sys_num);
+smartnet_decode_sptr smartnet_make_decode(gr::msg_queue::sptr queue,
+                                          int sys_num);
 
 /*!
  * \brief unstuff a packed stream of bits.
@@ -58,18 +59,20 @@ smartnet_decode_sptr smartnet_make_decode(gr::msg_queue::sptr queue, int sys_num
  * This uses the preferred technique: subclassing gr_block.
  */
 class smartnet_decode : public gr::sync_block {
-private:
+ private:
   // The friend declaration allows smartnet_make_decode to
   // access the private constructor.
   gr::msg_queue::sptr d_queue;
   int sys_num;
 
-  friend smartnet_decode_sptr smartnet_make_decode(gr::msg_queue::sptr queue, int sys_num);
+  friend smartnet_decode_sptr smartnet_make_decode(gr::msg_queue::sptr queue,
+                                                   int sys_num);
 
-  smartnet_decode(gr::msg_queue::sptr queue, int sys_num); // private constructor
+  smartnet_decode(gr::msg_queue::sptr queue,
+                  int sys_num);  // private constructor
 
-public:
-  ~smartnet_decode(); // public destructor
+ public:
+  ~smartnet_decode();  // public destructor
 
   // Where all the action really happens
 
@@ -79,7 +82,7 @@ public:
            gr_vector_void_star &output_items);
 
   /*	void forecast (int noutput_items,
-	               gr_vector_int &ninput_items_required);*/
+                       gr_vector_int &ninput_items_required);*/
 };
 
 #endif /* smartnet_decode_H */

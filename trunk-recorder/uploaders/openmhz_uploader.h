@@ -6,7 +6,7 @@ class Uploader;
 #include "uploader.h"
 
 class OpenmhzUploader : public Uploader {
-public:
+ public:
   int upload(struct call_data_t *call);
 };
 

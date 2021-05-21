@@ -1,4 +1,5 @@
 #include "openmhz_uploader.h"
+
 #include "uploader.h"
 
 int OpenmhzUploader::upload(struct call_data_t *call) {
@@ -21,7 +22,10 @@ int OpenmhzUploader::upload(struct call_data_t *call) {
     std::vector<Call_Source> call_source_list = call->source_list;
 
     for (int i = 0; i < call->source_count; i++) {
-      source_list << "{ \"pos\": " << std::setprecision(2) << call_source_list[i].position << ", \"src\": " << std::setprecision(0) << call_source_list[i].source << " }";
+      source_list << "{ \"pos\": " << std::setprecision(2)
+                  << call_source_list[i].position
+                  << ", \"src\": " << std::setprecision(0)
+                  << call_source_list[i].source << " }";
 
       if (i < (call->source_count - 1)) {
         source_list << ", ";
@@ -42,7 +46,13 @@ int OpenmhzUploader::upload(struct call_data_t *call) {
     Call_Freq *call_freq_list = call->freq_list;
 
     for (int i = 0; i < call->freq_count; i++) {
-      freq_list << "{ \"pos\": " << std::setprecision(2) << call_freq_list[i].position << ", \"freq\": " << std::setprecision(0) << call->freq_list[i].freq << ", \"len\": " << call->freq_list[i].total_len << ", \"errors\": " << call_freq_list[i].error_count << ", \"spikes\": " << call_freq_list[i].spike_count << " }";
+      freq_list << "{ \"pos\": " << std::setprecision(2)
+                << call_freq_list[i].position
+                << ", \"freq\": " << std::setprecision(0)
+                << call->freq_list[i].freq
+                << ", \"len\": " << call->freq_list[i].total_len
+                << ", \"errors\": " << call_freq_list[i].error_count
+                << ", \"spikes\": " << call_freq_list[i].spike_count << " }";
 
       if (i < (call->freq_count - 1)) {
         freq_list << ", ";
@@ -70,71 +80,50 @@ int OpenmhzUploader::upload(struct call_data_t *call) {
 
   /* Fill in the file upload field. This makes libcurl load data from
      the given file name when curl_easy_perform() is called. */
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "call",
-               CURLFORM_FILE, call->converted,
-               CURLFORM_CONTENTTYPE, "application/octet-stream",
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "call", CURLFORM_FILE,
+               call->converted, CURLFORM_CONTENTTYPE,
+               "application/octet-stream", CURLFORM_END);
+
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "freq",
+               CURLFORM_COPYCONTENTS, freq_string.c_str(), CURLFORM_END);
+
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "start_time",
+               CURLFORM_COPYCONTENTS,
+               boost::lexical_cast<std::string>(call->start_time).c_str(),
                CURLFORM_END);
 
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "freq",
-               CURLFORM_COPYCONTENTS, freq_string.c_str(),
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "stop_time",
+               CURLFORM_COPYCONTENTS,
+               boost::lexical_cast<std::string>(call->stop_time).c_str(),
                CURLFORM_END);
 
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "start_time",
-               CURLFORM_COPYCONTENTS, boost::lexical_cast<std::string>(call->start_time).c_str(),
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "call_length",
+               CURLFORM_COPYCONTENTS, call_length_string.c_str(), CURLFORM_END);
+
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "talkgroup_num",
+               CURLFORM_COPYCONTENTS,
+               boost::lexical_cast<std::string>(call->talkgroup).c_str(),
                CURLFORM_END);
 
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "stop_time",
-               CURLFORM_COPYCONTENTS, boost::lexical_cast<std::string>(call->stop_time).c_str(),
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "emergency",
+               CURLFORM_COPYCONTENTS,
+               boost::lexical_cast<std::string>(call->emergency).c_str(),
                CURLFORM_END);
 
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "call_length",
-               CURLFORM_COPYCONTENTS, call_length_string.c_str(),
-               CURLFORM_END);
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "api_key",
+               CURLFORM_COPYCONTENTS, call->api_key.c_str(), CURLFORM_END);
 
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "talkgroup_num",
-               CURLFORM_COPYCONTENTS, boost::lexical_cast<std::string>(call->talkgroup).c_str(),
-               CURLFORM_END);
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "source_list",
+               CURLFORM_COPYCONTENTS, source_list_string.c_str(), CURLFORM_END);
 
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "emergency",
-               CURLFORM_COPYCONTENTS, boost::lexical_cast<std::string>(call->emergency).c_str(),
-               CURLFORM_END);
-
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "api_key",
-               CURLFORM_COPYCONTENTS, call->api_key.c_str(),
-               CURLFORM_END);
-
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "source_list",
-               CURLFORM_COPYCONTENTS, source_list_string.c_str(),
-               CURLFORM_END);
-
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "freq_list",
-               CURLFORM_COPYCONTENTS, freq_list_string.c_str(),
-               CURLFORM_END);
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "freq_list",
+               CURLFORM_COPYCONTENTS, freq_list_string.c_str(), CURLFORM_END);
 
   curl = curl_easy_init();
   multi_handle = curl_multi_init();
 
-  /* initialize custom header list (stating that Expect: 100-continue is not wanted */
+  /* initialize custom header list (stating that Expect: 100-continue is not
+   * wanted */
   headerlist = curl_slist_append(headerlist, "Expect:");
   if (curl && multi_handle) {
     std::string url = call->upload_server + "/" + call->short_name + "/upload";
@@ -207,14 +196,14 @@ int OpenmhzUploader::upload(struct call_data_t *call) {
       }
 
       switch (rc) {
-      case -1:
-        /* select error */
-        break;
-      case 0:
-      default:
-        /* timeout or readable/writable sockets */
-        curl_multi_perform(multi_handle, &still_running);
-        break;
+        case -1:
+          /* select error */
+          break;
+        case 0:
+        default:
+          /* timeout or readable/writable sockets */
+          curl_multi_perform(multi_handle, &still_running);
+          break;
       }
     }
 
@@ -236,11 +225,17 @@ int OpenmhzUploader::upload(struct call_data_t *call) {
       struct stat file_info;
       stat(call->converted, &file_info);
 
-      BOOST_LOG_TRIVIAL(info) << "[" << call->short_name << "]\tTG: " << call->talkgroup << "\tFreq: " << FormatFreq(call->freq) << "\tOpenMHz Upload Success - file size: " << file_info.st_size;
+      BOOST_LOG_TRIVIAL(info)
+          << "[" << call->short_name << "]\tTG: " << call->talkgroup
+          << "\tFreq: " << FormatFreq(call->freq)
+          << "\tOpenMHz Upload Success - file size: " << file_info.st_size;
       ;
       return 0;
     }
   }
-  BOOST_LOG_TRIVIAL(error) << "[" << call->short_name << "]\tTG: " << call->talkgroup << "\tFreq: " << FormatFreq(call->freq) << "\tOpenMHz Upload Error: " << response_buffer;
+  BOOST_LOG_TRIVIAL(error) << "[" << call->short_name
+                           << "]\tTG: " << call->talkgroup
+                           << "\tFreq: " << FormatFreq(call->freq)
+                           << "\tOpenMHz Upload Error: " << response_buffer;
   return 1;
 }

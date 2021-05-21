@@ -1,8 +1,10 @@
 #include "call_uploader.h"
+
+#include <boost/regex.hpp>
+
 #include "broadcastify_uploader.h"
 #include "openmhz_uploader.h"
 #include "uploader.h"
-#include <boost/regex.hpp>
 
 void *upload_call_thread(void *thread_arg) {
   call_data_t *call_info;
@@ -13,14 +15,24 @@ void *upload_call_thread(void *thread_arg) {
 
   char shell_command[400];
 
-  //int nchars = snprintf(shell_command, 400, "nice -n -10 ffmpeg -y -i %s  -c:a libfdk_aac -b:a 32k -filter:a \"volume=15db\" -filter:a loudnorm -cutoff 18000 -hide_banner -loglevel panic %s ", call_info->filename, call_info->converted);
-  //int nchars = snprintf(shell_command, 400, "ffmpeg -y -i %s  -c:a libfdk_aac -b:a 32k -filter:a \"volume=15db\" -filter:a loudnorm  -hide_banner -loglevel panic %s ", call_info->filename, call_info->converted);
-  //int nchars = snprintf(shell_command, 400, "cd %s && fdkaac -S -b16 --raw-channels 1 --raw-rate 8000 %s", call_info->file_path, call_info->filename);
-  //hints from here https://github.com/nu774/fdkaac/issues/5 on how to pipe between the 2
-  int nchars = snprintf(shell_command, 400, "sox %s -t wav - --norm=-3 | fdkaac --silent --ignorelength -b 8000 -o %s -", call_info->filename, call_info->converted);
+  // int nchars = snprintf(shell_command, 400, "nice -n -10 ffmpeg -y -i %s -c:a
+  // libfdk_aac -b:a 32k -filter:a \"volume=15db\" -filter:a loudnorm -cutoff
+  // 18000 -hide_banner -loglevel panic %s ", call_info->filename,
+  // call_info->converted); int nchars = snprintf(shell_command, 400, "ffmpeg -y
+  // -i %s  -c:a libfdk_aac -b:a 32k -filter:a \"volume=15db\" -filter:a loudnorm
+  // -hide_banner -loglevel panic %s ", call_info->filename,
+  // call_info->converted); int nchars = snprintf(shell_command, 400, "cd %s &&
+  // fdkaac -S -b16 --raw-channels 1 --raw-rate 8000 %s", call_info->file_path,
+  // call_info->filename); hints from here
+  // https://github.com/nu774/fdkaac/issues/5 on how to pipe between the 2
+  int nchars = snprintf(shell_command, 400,
+                        "sox %s -t wav - --norm=-3 | fdkaac --silent "
+                        "--ignorelength -b 8000 -o %s -",
+                        call_info->filename, call_info->converted);
 
   if (nchars >= 400) {
-    BOOST_LOG_TRIVIAL(error) << "Call uploader: Command longer than 400 characters";
+    BOOST_LOG_TRIVIAL(error)
+        << "Call uploader: Command longer than 400 characters";
     delete (call_info);
     return NULL;
   }
@@ -31,7 +43,9 @@ void *upload_call_thread(void *thread_arg) {
   int rc = system(shell_command);
 
   if (rc > 0) {
-    BOOST_LOG_TRIVIAL(error) << "Failed to convert call recording, see above error. Make sure you have sox and fdkaac installed.";
+    BOOST_LOG_TRIVIAL(error)
+        << "Failed to convert call recording, see above error. Make sure you "
+           "have sox and fdkaac installed.";
     delete (call_info);
     return NULL;
   } else {
@@ -40,7 +54,8 @@ void *upload_call_thread(void *thread_arg) {
 
   int error = 0;
 
-  if (call_info->bcfy_calls_server != "" && call_info->bcfy_api_key != "" && call_info->bcfy_system_id > 0) {
+  if (call_info->bcfy_calls_server != "" && call_info->bcfy_api_key != "" &&
+      call_info->bcfy_system_id > 0) {
     BroadcastifyUploader *bcfy = new BroadcastifyUploader;
     error += bcfy->upload(call_info);
   }
@@ -73,7 +88,8 @@ void send_call(Call *call, System *sys, Config config) {
   pthread_t thread;
 
   // from: http://www.zedwood.com/article/cpp-boost-url-regex
-  boost::regex ex("(http|https)://([^/ :]+):?([^/ ]*)(/?[^ #?]*)\\x3f?([^ #]*)#?([^ ]*)");
+  boost::regex ex(
+      "(http|https)://([^/ :]+):?([^/ ]*)(/?[^ #?]*)\\x3f?([^ #]*)#?([^ ]*)");
   boost::cmatch what;
 
   strcpy(call_info->filename, call->get_filename());
@@ -97,7 +113,7 @@ void send_call(Call *call, System *sys, Config config) {
   // std::cout << "Setting up thread\n";
   std::vector<Call_Source> source_list = call->get_source_list();
   Call_Freq *freq_list = call->get_freq_list();
-  //Call_Error  *error_list  = call->get_error_list();
+  // Call_Error  *error_list  = call->get_error_list();
   call_info->talkgroup = call->get_talkgroup();
   call_info->freq = call->get_freq();
   call_info->encrypted = call->get_encrypted();

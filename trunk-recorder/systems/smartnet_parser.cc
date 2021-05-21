@@ -1,4 +1,5 @@
 #include "smartnet_parser.h"
+
 #include "../formatter.h"
 
 using namespace std;
@@ -6,7 +7,8 @@ SmartnetParser::SmartnetParser() {
   lastaddress = 0;
   lastcmd = 0;
   numStacked = 0;
-  numConsumed = 3; // "preload" the stack to where the scrubber head is before starting to parse
+  numConsumed = 3;  // "preload" the stack to where the scrubber head is before
+                    // starting to parse
 }
 
 double SmartnetParser::getfreq(int cmd, System *sys) {
@@ -19,8 +21,7 @@ double SmartnetParser::getfreq(int cmd, System *sys) {
       800_splinter
       800_reband
     */
-    if (cmd < 0 || cmd > 0x3FE)
-      return freq;
+    if (cmd < 0 || cmd > 0x3FE) return freq;
     if (cmd <= 0x2CF) {
       if (band == "800_reband" && cmd >= 0x1B8 &&
           cmd <= 0x22F) { /* Re Banded Site */
@@ -53,8 +54,8 @@ double SmartnetParser::getfreq(int cmd, System *sys) {
                           sys->get_bandplan_spacing();
 
     if ((cmd >= sys->get_bandplan_offset()) &&
-        (cmd < high_cmd)) { // (cmd <= sys->get_bandplan_base() +
-                            // sys->get_bandplan_offset() )) {
+        (cmd < high_cmd)) {  // (cmd <= sys->get_bandplan_base() +
+                             // sys->get_bandplan_offset() )) {
       freq = sys->get_bandplan_base() +
              (sys->get_bandplan_spacing() * (cmd - sys->get_bandplan_offset()));
     }
@@ -90,13 +91,11 @@ bool SmartnetParser::is_chan_inbound_obt(int cmd, System *sys) {
 bool SmartnetParser::is_first_normal(int cmd, System *sys) {
   if (sys->get_bandfreq() == 800) {
     // anything "800" should be replaced with 8/9 compatible switching
-    return ((cmd == OSW_FIRST_NORMAL) ||
-            (cmd == OSW_FIRST_ASTRO));
+    return ((cmd == OSW_FIRST_NORMAL) || (cmd == OSW_FIRST_ASTRO));
   } else {
-    // if we're looking at an OBT trunk, inbound channel commands are first normals too
-    // anything "400" should be replaced as "OBT" in the future =/
-    return (is_chan_inbound_obt(cmd, sys) ||
-            (cmd == OSW_FIRST_NORMAL) ||
+    // if we're looking at an OBT trunk, inbound channel commands are first
+    // normals too anything "400" should be replaced as "OBT" in the future =/
+    return (is_chan_inbound_obt(cmd, sys) || (cmd == OSW_FIRST_NORMAL) ||
             (cmd == OSW_FIRST_ASTRO));
   }
 }
@@ -151,28 +150,28 @@ std::vector<TrunkMessage> SmartnetParser::parse_message(std::string s,
   // maintain a sliding stack of 5 OSWs. If previous iteration used more than
   // one, don't utilize stack until all used ones have slid past.
 
-  switch (numStacked) // note: drop-thru is intentional!
+  switch (numStacked)  // note: drop-thru is intentional!
   {
-  case 5:
-  case 4:
-    stack[4] = stack[3];
+    case 5:
+    case 4:
+      stack[4] = stack[3];
 
-  case 3:
-    stack[3] = stack[2];
+    case 3:
+      stack[3] = stack[2];
 
-  case 2:
-    stack[2] = stack[1];
+    case 2:
+      stack[2] = stack[1];
 
-  case 1:
-    stack[1] = stack[0];
+    case 1:
+      stack[1] = stack[0];
 
-  case 0:
-    stack[0] = bosw;
-    break;
+    case 0:
+      stack[0] = bosw;
+      break;
 
-  default:
-    BOOST_LOG_TRIVIAL(info) << "corrupt value for nstacked" << endl;
-    break;
+    default:
+      BOOST_LOG_TRIVIAL(info) << "corrupt value for nstacked" << endl;
+      break;
   }
 
   if (numStacked < 5) {
@@ -195,56 +194,78 @@ std::vector<TrunkMessage> SmartnetParser::parse_message(std::string s,
   // raw OSW stream
   // BOOST_LOG_TRIVIAL(warning)
   //     << "[" << system->get_short_name()
-  //     << "] [OSW!] [[["<< std::hex << stack[0].cmd << " " << std::hex << stack[0].grp << " " << std::hex << stack[0].full_address << "]]]";
+  //     << "] [OSW!] [[["<< std::hex << stack[0].cmd << " " << std::hex <<
+  //     stack[0].grp << " " << std::hex << stack[0].full_address << "]]]";
 
   // Message parsing strategy
-  // OSW stack:      [0  1  2  3  4] (consume) - consume is how many OSWs to consume. This includes the 1-OSW regular increment.
+  // OSW stack:      [0  1  2  3  4] (consume) - consume is how many OSWs to
+  // consume. This includes the 1-OSW regular increment.
   //                           ^
   // Direction:       Tail --> Head
-  // Order of tests: [0  1  2  3  4] (consume) - consume is how many OSWs to consume. This includes the 1-OSW regular increment.
-  //                                 (1) test if [3] is a 1-OSW message, such as:
-  //                          [3]            1-OSW message dynamic command: call continue
-  //                          [3]            1-OSW message static  command: IDLE, RfA, etc.
-  //                          [3]            1-OSW message dynamic command: AMSS site announcement
-  //                    [1  2  3]    (n) test if [3] is an OSW with a FIRST_NORMAL or STATUS, both of which can be variable in length.
-  //                    [1  2  3]            If [3] is a FIRST_NORMAL or STATUS, ++numConsumed.
-  //                    [1  2  3]            If [2] is SECOND, ++numConsumed, and see if [1] is an EXTENDED_FCN.
-  //                    [1  2  3]                If [1] is an EXTENDED_FCN, then we have a valid 3-OSW message.
-  //                    [1  2  3]                If not, then we have a malformed 3-OSW message. Process accordingly.
-  //                    [1  2  3]            If [2] is not SECOND, then see if it's an EXTENDED.
-  //                    [1  2  3]                If it is, then we have a valid 2-OSW message. Process accordingly.
-  //                    [1  2  3]                If not, then we have a malformed 2-OSW message.
-  // An OSW is 32 bits - round that up to 36 bits, 3600 b/s CC -> 100 OSWs/s -> 10 ms/OSW.
-  // Even though we're now looking 2 OSWs later than the previous parser, that's only a 20 ms hit, 40 ms past the system.
-  // If we wish to eek 10 ms better performance, we can shift over 1 and test [0 1 2] instead of [1 2 3] instead.
-  // If we wish to eek 20 ms on top of that, we could check call continues on [0] and do weird message history backfilling,
-  // but this really isn't worth it.
+  // Order of tests: [0  1  2  3  4] (consume) - consume is how many OSWs to
+  // consume. This includes the 1-OSW regular increment.
+  //                                 (1) test if [3] is a 1-OSW message, such
+  //                                 as:
+  //                          [3]            1-OSW message dynamic command: call
+  //                          continue [3]            1-OSW message static
+  //                          command: IDLE, RfA, etc. [3]            1-OSW
+  //                          message dynamic command: AMSS site announcement
+  //                    [1  2  3]    (n) test if [3] is an OSW with a
+  //                    FIRST_NORMAL or STATUS, both of which can be variable in
+  //                    length. [1  2  3]            If [3] is a FIRST_NORMAL or
+  //                    STATUS, ++numConsumed. [1  2  3]            If [2] is
+  //                    SECOND, ++numConsumed, and see if [1] is an
+  //                    EXTENDED_FCN. [1  2  3]                If [1] is an
+  //                    EXTENDED_FCN, then we have a valid 3-OSW message. [1  2
+  //                    3]                If not, then we have a malformed 3-OSW
+  //                    message. Process accordingly. [1  2  3]            If
+  //                    [2] is not SECOND, then see if it's an EXTENDED. [1  2
+  //                    3]                If it is, then we have a valid 2-OSW
+  //                    message. Process accordingly. [1  2  3] If not, then we
+  //                    have a malformed 2-OSW message.
+  // An OSW is 32 bits - round that up to 36 bits, 3600 b/s CC -> 100 OSWs/s ->
+  // 10 ms/OSW. Even though we're now looking 2 OSWs later than the previous
+  // parser, that's only a 20 ms hit, 40 ms past the system. If we wish to eek
+  // 10 ms better performance, we can shift over 1 and test [0 1 2] instead of
+  // [1 2 3] instead. If we wish to eek 20 ms on top of that, we could check
+  // call continues on [0] and do weird message history backfilling, but this
+  // really isn't worth it.
 
   // 1-OSW message: dynamic - call continue
-  // is_chan_outbound(stack[3].cmd) returns if a command is a valid outbound channel indicator
-  //                       (taking into consideration band and bandplan base/high/spacing/offset).
-  // If stack[3].cmd is a valid outbound word, then we have a valid call continue.
+  // is_chan_outbound(stack[3].cmd) returns if a command is a valid outbound
+  // channel indicator
+  //                       (taking into consideration band and bandplan
+  //                       base/high/spacing/offset).
+  // If stack[3].cmd is a valid outbound word, then we have a valid call
+  // continue.
   if (is_chan_outbound(stack[3].cmd, system)) {
     // this is a call continue
     if (stack[3].grp) {
       // this is a group call continue
       // BOOST_LOG_TRIVIAL(warning)
       //     << "[" << system->get_short_name() << "] [group call continue] [ "
-      //     << std::hex << stack[0].cmd << " " << std::hex << stack[0].grp << " " << std::hex << stack[0].full_address << "  |  "
-      //     << std::hex << stack[1].cmd << " " << std::hex << stack[1].grp << " " << std::hex << stack[1].full_address << "  |  "
-      //     << std::hex << stack[2].cmd << " " << std::hex << stack[2].grp << " " << std::hex << stack[2].full_address << "  | >"
-      //     << std::hex << stack[3].cmd << " " << std::hex << stack[3].grp << " " << std::hex << stack[3].full_address << "< |  "
-      //     << std::hex << stack[4].cmd << " " << std::hex << stack[4].grp << " " << std::hex << stack[4].full_address << " ]";
+      //     << std::hex << stack[0].cmd << " " << std::hex << stack[0].grp << "
+      //     " << std::hex << stack[0].full_address << "  |  "
+      //     << std::hex << stack[1].cmd << " " << std::hex << stack[1].grp << "
+      //     " << std::hex << stack[1].full_address << "  |  "
+      //     << std::hex << stack[2].cmd << " " << std::hex << stack[2].grp << "
+      //     " << std::hex << stack[2].full_address << "  | >"
+      //     << std::hex << stack[3].cmd << " " << std::hex << stack[3].grp << "
+      //     " << std::hex << stack[3].full_address << "< |  "
+      //     << std::hex << stack[4].cmd << " " << std::hex << stack[4].grp << "
+      //     " << std::hex << stack[4].full_address << " ]";
       message.message_type = UPDATE;
       message.freq = getfreq(stack[3].cmd, system);
       message.talkgroup = stack[3].address;
       if (stack[3].status >= 8) {
         message.encrypted = true;
-        if ((stack[3].status == 10) || (stack[3].status == 12) || (stack[3].status == 13)) {
+        if ((stack[3].status == 10) || (stack[3].status == 12) ||
+            (stack[3].status == 13)) {
           message.emergency = true;
         }
       }
-      if ((stack[3].status == 2) || (stack[3].status == 4) || (stack[3].status == 5)) {
+      if ((stack[3].status == 2) || (stack[3].status == 4) ||
+          (stack[3].status == 5)) {
         message.emergency = true;
       }
       messages.push_back(message);
@@ -252,12 +273,18 @@ std::vector<TrunkMessage> SmartnetParser::parse_message(std::string s,
     } else {
       // this is an individual call continue
       // BOOST_LOG_TRIVIAL(warning)
-      //     << "[" << system->get_short_name() << "] [individual call continue] [ "
-      //     << std::hex << stack[0].cmd << " " << std::hex << stack[0].grp << " " << std::hex << stack[0].full_address << "  |  "
-      //     << std::hex << stack[1].cmd << " " << std::hex << stack[1].grp << " " << std::hex << stack[1].full_address << "  |  "
-      //     << std::hex << stack[2].cmd << " " << std::hex << stack[2].grp << " " << std::hex << stack[2].full_address << "  | >"
-      //     << std::hex << stack[3].cmd << " " << std::hex << stack[3].grp << " " << std::hex << stack[3].full_address << "< |  "
-      //     << std::hex << stack[4].cmd << " " << std::hex << stack[4].grp << " " << std::hex << stack[4].full_address << " ]";
+      //     << "[" << system->get_short_name() << "] [individual call continue]
+      //     [ "
+      //     << std::hex << stack[0].cmd << " " << std::hex << stack[0].grp << "
+      //     " << std::hex << stack[0].full_address << "  |  "
+      //     << std::hex << stack[1].cmd << " " << std::hex << stack[1].grp << "
+      //     " << std::hex << stack[1].full_address << "  |  "
+      //     << std::hex << stack[2].cmd << " " << std::hex << stack[2].grp << "
+      //     " << std::hex << stack[2].full_address << "  | >"
+      //     << std::hex << stack[3].cmd << " " << std::hex << stack[3].grp << "
+      //     " << std::hex << stack[3].full_address << "< |  "
+      //     << std::hex << stack[4].cmd << " " << std::hex << stack[4].grp << "
+      //     " << std::hex << stack[4].full_address << " ]";
       message.message_type = UNKNOWN;
       messages.push_back(message);
       return messages;
@@ -265,7 +292,8 @@ std::vector<TrunkMessage> SmartnetParser::parse_message(std::string s,
   }
 
   // 1-OSW message: static
-  // Is there any useful information in the group/full address of an idle 1-OSW message?
+  // Is there any useful information in the group/full address of an idle 1-OSW
+  // message?
   if (stack[3].cmd == OSW_BACKGROUND_IDLE) {
     message.message_type = UNKNOWN;
     messages.push_back(message);
@@ -279,11 +307,13 @@ std::vector<TrunkMessage> SmartnetParser::parse_message(std::string s,
   }
 
   // 1-OSW message: dynamic - AMSS/SmartZone site # announcement
-  // There is also potentially a site name that would need to be cobbled together
-  // over multiple runs of parse_message since 3 unique ones are needed.
+  // There is also potentially a site name that would need to be cobbled
+  // together over multiple runs of parse_message since 3 unique ones are
+  // needed.
   if ((OSW_AMSS_ID_MIN <= stack[3].cmd) && (stack[3].cmd <= OSW_AMSS_ID_MAX)) {
     // BOOST_LOG_TRIVIAL(warning)
-    //     << "[" << system->get_short_name() << "] [Type II AMSS/SmartZone Site Announcement] Site $"
+    //     << "[" << system->get_short_name() << "] [Type II AMSS/SmartZone Site
+    //     Announcement] Site $"
     //     << std::hex << stack[3].cmd - OSW_AMSS_ID_MIN + 1;
     message.message_type = UNKNOWN;
     messages.push_back(message);
@@ -298,7 +328,8 @@ std::vector<TrunkMessage> SmartnetParser::parse_message(std::string s,
   // No handling required though since that 2-OSW message already comes with
   // the header being a group OSW.
   // There's also the possibility that Net/Status messages can be 3-OSW.
-  // We don't know about this, so we'll catch them by failing through to the end.
+  // We don't know about this, so we'll catch them by failing through to the
+  // end.
   if ((stack[3].cmd == OSW_SYS_NETSTAT) || (stack[3].cmd == OSW_SYS_STATUS)) {
     if (stack[2].cmd == OSW_SECOND_NORMAL) {
       ++numConsumed;
@@ -306,8 +337,9 @@ std::vector<TrunkMessage> SmartnetParser::parse_message(std::string s,
         // we have a 3-OSW message.
 
         // if we don't have a valid 3-OSW message but the second OSW
-        // is still a OSW_SECOND_NORMAL, then we want to know about it in development.
-        // we'll still consume 2-OSWs because we incremented after checking OSW_SECOND_NORMAL.
+        // is still a OSW_SECOND_NORMAL, then we want to know about it in
+        // development. we'll still consume 2-OSWs because we incremented after
+        // checking OSW_SECOND_NORMAL.
         ++numConsumed;
         message.message_type = UNKNOWN;
         messages.push_back(message);
@@ -337,21 +369,28 @@ std::vector<TrunkMessage> SmartnetParser::parse_message(std::string s,
         // this is a group call grant
         // BOOST_LOG_TRIVIAL(warning)
         //     << "[" << system->get_short_name() << "] [group call grant] [ "
-        //     << std::hex << stack[0].cmd << " " << std::hex << stack[0].grp << " " << std::hex << stack[0].full_address << "  |  "
-        //     << std::hex << stack[1].cmd << " " << std::hex << stack[1].grp << " " << std::hex << stack[1].full_address << "  | >"
-        //     << std::hex << stack[2].cmd << " " << std::hex << stack[2].grp << " " << std::hex << stack[2].full_address << "  |  "
-        //     << std::hex << stack[3].cmd << " " << std::hex << stack[3].grp << " " << std::hex << stack[3].full_address << "< |  "
-        //     << std::hex << stack[4].cmd << " " << std::hex << stack[4].grp << " " << std::hex << stack[4].full_address << " ]";
+        //     << std::hex << stack[0].cmd << " " << std::hex << stack[0].grp <<
+        //     " " << std::hex << stack[0].full_address << "  |  "
+        //     << std::hex << stack[1].cmd << " " << std::hex << stack[1].grp <<
+        //     " " << std::hex << stack[1].full_address << "  | >"
+        //     << std::hex << stack[2].cmd << " " << std::hex << stack[2].grp <<
+        //     " " << std::hex << stack[2].full_address << "  |  "
+        //     << std::hex << stack[3].cmd << " " << std::hex << stack[3].grp <<
+        //     " " << std::hex << stack[3].full_address << "< |  "
+        //     << std::hex << stack[4].cmd << " " << std::hex << stack[4].grp <<
+        //     " " << std::hex << stack[4].full_address << " ]";
         message.message_type = GRANT;
         message.freq = getfreq(stack[2].cmd, system);
         message.talkgroup = stack[2].address;
         if (stack[2].status >= 8) {
           message.encrypted = true;
-          if ((stack[2].status == 10) || (stack[2].status == 12) || (stack[2].status == 13)) {
+          if ((stack[2].status == 10) || (stack[2].status == 12) ||
+              (stack[2].status == 13)) {
             message.emergency = true;
           }
         }
-        if ((stack[2].status == 2) || (stack[2].status == 4) || (stack[2].status == 5)) {
+        if ((stack[2].status == 2) || (stack[2].status == 4) ||
+            (stack[2].status == 5)) {
           message.emergency = true;
         }
         message.source = stack[3].full_address;
@@ -360,12 +399,18 @@ std::vector<TrunkMessage> SmartnetParser::parse_message(std::string s,
       } else {
         // this is an individual call grant
         // BOOST_LOG_TRIVIAL(warning)
-        //     << "[" << system->get_short_name() << "] [individual call grant] [ "
-        //     << std::hex << stack[0].cmd << " " << std::hex << stack[0].grp << " " << std::hex << stack[0].full_address << "  |  "
-        //     << std::hex << stack[1].cmd << " " << std::hex << stack[1].grp << " " << std::hex << stack[1].full_address << "  | >"
-        //     << std::hex << stack[2].cmd << " " << std::hex << stack[2].grp << " " << std::hex << stack[2].full_address << "  |  "
-        //     << std::hex << stack[3].cmd << " " << std::hex << stack[3].grp << " " << std::hex << stack[3].full_address << "< |  "
-        //     << std::hex << stack[4].cmd << " " << std::hex << stack[4].grp << " " << std::hex << stack[4].full_address << " ]";
+        //     << "[" << system->get_short_name() << "] [individual call grant]
+        //     [ "
+        //     << std::hex << stack[0].cmd << " " << std::hex << stack[0].grp <<
+        //     " " << std::hex << stack[0].full_address << "  |  "
+        //     << std::hex << stack[1].cmd << " " << std::hex << stack[1].grp <<
+        //     " " << std::hex << stack[1].full_address << "  | >"
+        //     << std::hex << stack[2].cmd << " " << std::hex << stack[2].grp <<
+        //     " " << std::hex << stack[2].full_address << "  |  "
+        //     << std::hex << stack[3].cmd << " " << std::hex << stack[3].grp <<
+        //     " " << std::hex << stack[3].full_address << "< |  "
+        //     << std::hex << stack[4].cmd << " " << std::hex << stack[4].grp <<
+        //     " " << std::hex << stack[4].full_address << " ]";
         message.message_type = UNKNOWN;
         messages.push_back(message);
         return messages;
@@ -392,7 +437,8 @@ std::vector<TrunkMessage> SmartnetParser::parse_message(std::string s,
       if (stack[2].full_address == 0x2021) {
         // Patch Termination
         // BOOST_LOG_TRIVIAL(warning)
-        //     << "[" << system->get_short_name() << "] [patch/msel termination] TG $"
+        //     << "[" << system->get_short_name() << "] [patch/msel termination]
+        //     TG $"
         //     << std::hex << stack[3].full_address;
         message.message_type = UNKNOWN;
         message.talkgroup = stack[3].address;
@@ -422,7 +468,8 @@ std::vector<TrunkMessage> SmartnetParser::parse_message(std::string s,
       if (stack[2].full_address == 0x2c47) {
         // Busy Override Deny
         // BOOST_LOG_TRIVIAL(warning)
-        //     << "[" << system->get_short_name() << "] [busy override deny] RID $"
+        //     << "[" << system->get_short_name() << "] [busy override deny] RID
+        //     $"
         //     << std::hex << stack[3].full_address;
         message.message_type = UNKNOWN;
         message.source = stack[3].full_address;
@@ -439,7 +486,8 @@ std::vector<TrunkMessage> SmartnetParser::parse_message(std::string s,
         messages.push_back(message);
         return messages;
       }
-      if ((0 <= (stack[2].full_address - 0x2800)) && ((stack[2].full_address - 0x2800) < 0x2f7)) {
+      if ((0 <= (stack[2].full_address - 0x2800)) &&
+          ((stack[2].full_address - 0x2800) < 0x2f7)) {
         // System ID
         // BOOST_LOG_TRIVIAL(warning)
         //     << "[" << system->get_short_name() << "] [Sys ID] SID $"
@@ -476,25 +524,31 @@ std::vector<TrunkMessage> SmartnetParser::parse_message(std::string s,
     }
   }
 
-  // If we get here, we don't know about this OCW (and/or a combination of it with others beside it).
-  // Error accordingly and log the stack.
+  // If we get here, we don't know about this OCW (and/or a combination of it
+  // with others beside it). Error accordingly and log the stack.
 
-  // If we just got started, then we also could just be looking at the tail of a known message.
-  // We preloaded the stack on a fresh start so there shouldn't be errors, but we have not
-  // emptied and reloaded the stack on a CC retune. Future request.
+  // If we just got started, then we also could just be looking at the tail of a
+  // known message. We preloaded the stack on a fresh start so there shouldn't
+  // be errors, but we have not emptied and reloaded the stack on a CC retune.
+  // Future request.
 
-  // There is also the possibility of missing OSWs and having incomplete messages.
-  // Adding the logic to test for this might be nice to have (test could be "if we got here,
-  // this OSW is is missing a header or other OSWs that comprise a valid message -
-  // test if we know this OSW command though, and if we do, discard the OSW and move on")
-  // BOOST_LOG_TRIVIAL(warning)
+  // There is also the possibility of missing OSWs and having incomplete
+  // messages. Adding the logic to test for this might be nice to have (test
+  // could be "if we got here, this OSW is is missing a header or other OSWs
+  // that comprise a valid message - test if we know this OSW command though,
+  // and if we do, discard the OSW and move on") BOOST_LOG_TRIVIAL(warning)
   //     << "[" << system->get_short_name()
   //     << "] [Unknown OSW!] [ "
-  //     << std::hex << stack[0].cmd << " " << std::hex << stack[0].grp << " " << std::hex << stack[0].full_address << "  |  "
-  //     << std::hex << stack[1].cmd << " " << std::hex << stack[1].grp << " " << std::hex << stack[1].full_address << "  |  "
-  //     << std::hex << stack[2].cmd << " " << std::hex << stack[2].grp << " " << std::hex << stack[2].full_address << "  | >"
-  //     << std::hex << stack[3].cmd << " " << std::hex << stack[3].grp << " " << std::hex << stack[3].full_address << "< |  "
-  //     << std::hex << stack[4].cmd << " " << std::hex << stack[4].grp << " " << std::hex << stack[4].full_address << " ]";
+  //     << std::hex << stack[0].cmd << " " << std::hex << stack[0].grp << " "
+  //     << std::hex << stack[0].full_address << "  |  "
+  //     << std::hex << stack[1].cmd << " " << std::hex << stack[1].grp << " "
+  //     << std::hex << stack[1].full_address << "  |  "
+  //     << std::hex << stack[2].cmd << " " << std::hex << stack[2].grp << " "
+  //     << std::hex << stack[2].full_address << "  | >"
+  //     << std::hex << stack[3].cmd << " " << std::hex << stack[3].grp << " "
+  //     << std::hex << stack[3].full_address << "< |  "
+  //     << std::hex << stack[4].cmd << " " << std::hex << stack[4].grp << " "
+  //     << std::hex << stack[4].full_address << " ]";
   message.message_type = UNKNOWN;
   messages.push_back(message);
   return messages;

@@ -6,10 +6,10 @@ class Uploader;
 #include "uploader.h"
 
 class BroadcastifyUploader : public Uploader {
-public:
+ public:
   int upload(struct call_data_t *call);
 
-private:
+ private:
   CURLcode upload_audio_file(std::string converted, std::string url);
 };
 

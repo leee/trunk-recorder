@@ -1,10 +1,12 @@
 #ifndef CALL_H
 #define CALL_H
-#include "../lib/gr_blocks/decoder_wrapper.h"
+#include <sys/time.h>
+
 #include <boost/log/trivial.hpp>
 #include <string>
-#include <sys/time.h>
 #include <vector>
+
+#include "../lib/gr_blocks/decoder_wrapper.h"
 
 struct Call_Source {
   long source;
@@ -32,18 +34,19 @@ struct Call_Error {
 };
 
 class Recorder;
+#include <op25_repeater/include/op25_repeater/rx_status.h>
+
 #include "config.h"
 #include "state.h"
 #include "systems/parser.h"
 #include "systems/system.h"
 #include "uploaders/call_uploader.h"
-#include <op25_repeater/include/op25_repeater/rx_status.h>
 
 class System;
-//enum  CallState { monitoring=0, recording=1, stopping=2};
+// enum  CallState { monitoring=0, recording=1, stopping=2};
 
 class Call {
-public:
+ public:
   Call(long t, double f, System *s, Config c);
   Call(TrunkMessage message, System *s, Config c);
   virtual ~Call();
@@ -96,7 +99,7 @@ public:
   void set_tdma_slot(int s);
   int get_tdma_slot();
   const char *get_xor_mask();
-  virtual time_t get_start_time() {return start_time;}
+  virtual time_t get_start_time() { return start_time; }
   virtual bool is_conventional() { return false; }
   void set_encrypted(bool m);
   bool get_encrypted();
@@ -108,7 +111,8 @@ public:
   void clear_src_list();
   boost::property_tree::ptree get_stats();
 
-  bool add_signal_source(long src, const char *signaling_type, gr::blocks::SignalType signal);
+  bool add_signal_source(long src, const char *signaling_type,
+                         gr::blocks::SignalType signal);
 
   std::string get_talkgroup_tag();
   std::string get_system_type();
@@ -116,7 +120,7 @@ public:
 
   System *get_system();
 
-protected:
+ protected:
   State state;
   long talkgroup;
   double curr_freq;

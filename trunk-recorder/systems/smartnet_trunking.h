@@ -1,15 +1,14 @@
 #ifndef SMARTNET_TRUNKING
 #define SMARTNET_TRUNKING
 
-#include <boost/log/trivial.hpp>
-#include <boost/math/constants/constants.hpp>
-
+#include <gnuradio/filter/firdes.h>
 #include <gnuradio/gr_complex.h>
 #include <gnuradio/hier_block2.h>
 #include <gnuradio/message.h>
 #include <gnuradio/msg_queue.h>
 
-#include <gnuradio/filter/firdes.h>
+#include <boost/log/trivial.hpp>
+#include <boost/math/constants/constants.hpp>
 
 #if GNURADIO_VERSION < 0x030800
 #include <gnuradio/analog/sig_source_c.h>
@@ -21,6 +20,7 @@
 #include <gnuradio/filter/fir_filter_blk.h>
 #endif
 
+#include <gnuradio/analog/pll_freqdet_cf.h>
 #include <gnuradio/digital/binary_slicer_fb.h>
 #include <gnuradio/digital/clock_recovery_mm_ff.h>
 #include <gnuradio/digital/correlate_access_code_tag_bb.h>
@@ -29,28 +29,21 @@
 #include <gnuradio/filter/fft_filter_ccf.h>
 #include <gnuradio/filter/pfb_arb_resampler_ccf.h>
 
-#include <gnuradio/analog/pll_freqdet_cf.h>
-
 #include "smartnet_decode.h"
 
 class smartnet_trunking;
 
 typedef boost::shared_ptr<smartnet_trunking> smartnet_trunking_sptr;
 
-smartnet_trunking_sptr make_smartnet_trunking(float f,
-                                              float c,
-                                              long s,
+smartnet_trunking_sptr make_smartnet_trunking(float f, float c, long s,
                                               gr::msg_queue::sptr queue,
                                               int sys_num);
 
 class smartnet_trunking : public gr::hier_block2 {
-  friend smartnet_trunking_sptr make_smartnet_trunking(float f,
-                                                       float c,
-                                                       long s,
-                                                       gr::msg_queue::sptr queue,
-                                                       int sys_num);
+  friend smartnet_trunking_sptr make_smartnet_trunking(
+      float f, float c, long s, gr::msg_queue::sptr queue, int sys_num);
 
-public:
+ public:
   struct DecimSettings {
     long decim;
     long decim2;
@@ -61,7 +54,7 @@ public:
   void tune_freq(double f);
   void reset();
 
-protected:
+ protected:
   smartnet_trunking::DecimSettings get_decim(long speed);
   void generate_arb_taps();
   void initialize_prefilter();
@@ -87,10 +80,7 @@ protected:
   gr::digital::binary_slicer_fb::sptr slicer;
   gr::digital::correlate_access_code_tag_bb::sptr start_correlator;
 
-  smartnet_trunking(float f,
-                    float c,
-                    long s,
-                    gr::msg_queue::sptr queue,
+  smartnet_trunking(float f, float c, long s, gr::msg_queue::sptr queue,
                     int sys_num);
   double chan_freq, center_freq;
   double system_channel_rate;
@@ -106,4 +96,4 @@ protected:
   int sys_num;
 };
 
-#endif // ifndef SMARTNET_TRUNKING
+#endif  // ifndef SMARTNET_TRUNKING

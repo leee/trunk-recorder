@@ -1,14 +1,15 @@
 
 #include "call_conventional.h"
-#include "formatter.h"
-#include "recorders/recorder.h"
+
 #include <boost/algorithm/string.hpp>
 
-Call_conventional::Call_conventional(long t, double f, System *s, Config c) : Call(t, f, s, c) {
-}
+#include "formatter.h"
+#include "recorders/recorder.h"
 
-Call_conventional::~Call_conventional() {
-}
+Call_conventional::Call_conventional(long t, double f, System *s, Config c)
+    : Call(t, f, s, c) {}
+
+Call_conventional::~Call_conventional() {}
 
 void Call_conventional::restart_call() {
   idle_count = 0;
@@ -31,15 +32,16 @@ void Call_conventional::restart_call() {
 }
 
 time_t Call_conventional::get_start_time() {
-  // Fixes https://github.com/robotastic/trunk-recorder/issues/103#issuecomment-284825841
+  // Fixes
+  // https://github.com/robotastic/trunk-recorder/issues/103#issuecomment-284825841
   return start_time = stop_time - final_length;
 }
 
 void Call_conventional::set_recorder(Recorder *r) {
   recorder = r;
-  BOOST_LOG_TRIVIAL(info) << "[" << sys->get_short_name() << "]\tTG: " << this->get_talkgroup_display() << "\tFreq: " << FormatFreq(this->get_freq());
+  BOOST_LOG_TRIVIAL(info) << "[" << sys->get_short_name()
+                          << "]\tTG: " << this->get_talkgroup_display()
+                          << "\tFreq: " << FormatFreq(this->get_freq());
 }
 
-void Call_conventional::recording_started() {
-  start_time = time(NULL);
-}
+void Call_conventional::recording_started() { start_time = time(NULL); }

@@ -5,12 +5,12 @@
 #include <boost/intrusive_ptr.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/tokenizer.hpp>
-
-#include "csv_helper.h"
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+
+#include "csv_helper.h"
 
 Talkgroups::Talkgroups() {}
 
@@ -22,7 +22,8 @@ void Talkgroups::load_talkgroups(std::string filename) {
   std::ifstream in(filename.c_str());
 
   if (!in.is_open()) {
-    BOOST_LOG_TRIVIAL(error) << "Error Opening TG File: " << filename << std::endl;
+    BOOST_LOG_TRIVIAL(error)
+        << "Error Opening TG File: " << filename << std::endl;
     return;
   }
 
@@ -36,7 +37,7 @@ void Talkgroups::load_talkgroups(std::string filename) {
   int lines_pushed = 0;
   int priority = 1;
 
-  while (!safeGetline(in, line).eof()) // this works with \r, \n, or \r\n
+  while (!safeGetline(in, line).eof())  // this works with \r, \n, or \r\n
   {
     if (line.size() && (line[line.size() - 1] == '\r')) {
       line = line.substr(0, line.size() - 1);
@@ -44,8 +45,7 @@ void Talkgroups::load_talkgroups(std::string filename) {
 
     lines_read++;
 
-    if (line == "")
-      continue;
+    if (line == "") continue;
 
     t_tokenizer tok(line, sep);
 
@@ -63,14 +63,16 @@ void Talkgroups::load_talkgroups(std::string filename) {
     vec.assign(tok.begin(), tok.end());
 
     if (!((vec.size() == 8) || (vec.size() == 7))) {
-      BOOST_LOG_TRIVIAL(error) << "Malformed talkgroup entry at line " << lines_read << ".";
+      BOOST_LOG_TRIVIAL(error)
+          << "Malformed talkgroup entry at line " << lines_read << ".";
       continue;
     }
     // TODO(nkw): more sanity checking here.
     priority = (vec.size() == 8) ? atoi(vec[7].c_str()) : 1;
 
     Talkgroup *tg =
-        new Talkgroup(atoi(vec[0].c_str()), vec[2].at(0), vec[3].c_str(), vec[4].c_str(), vec[5].c_str(), vec[6].c_str(), priority);
+        new Talkgroup(atoi(vec[0].c_str()), vec[2].at(0), vec[3].c_str(),
+                      vec[4].c_str(), vec[5].c_str(), vec[6].c_str(), priority);
 
     talkgroups.push_back(tg);
     lines_pushed++;
@@ -79,8 +81,12 @@ void Talkgroups::load_talkgroups(std::string filename) {
   if (lines_pushed != lines_read) {
     // The parser above is pretty brittle. This will help with debugging it, for
     // now.
-    BOOST_LOG_TRIVIAL(error) << "Warning: skipped " << lines_read - lines_pushed << " of " << lines_read << " talkgroup entries! Invalid format?";
-    BOOST_LOG_TRIVIAL(error) << "The format is very particular. See https://github.com/robotastic/trunk-recorder for example input.";
+    BOOST_LOG_TRIVIAL(error)
+        << "Warning: skipped " << lines_read - lines_pushed << " of "
+        << lines_read << " talkgroup entries! Invalid format?";
+    BOOST_LOG_TRIVIAL(error)
+        << "The format is very particular. See "
+           "https://github.com/robotastic/trunk-recorder for example input.";
   } else {
     BOOST_LOG_TRIVIAL(info) << "Read " << lines_pushed << " talkgroups.";
   }
@@ -89,7 +95,8 @@ void Talkgroups::load_talkgroups(std::string filename) {
 Talkgroup *Talkgroups::find_talkgroup(long tg_number) {
   Talkgroup *tg_match = NULL;
 
-  for (std::vector<Talkgroup *>::iterator it = talkgroups.begin(); it != talkgroups.end(); ++it) {
+  for (std::vector<Talkgroup *>::iterator it = talkgroups.begin();
+       it != talkgroups.end(); ++it) {
     Talkgroup *tg = (Talkgroup *)*it;
 
     if (tg->number == tg_number) {

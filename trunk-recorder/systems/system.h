@@ -1,9 +1,11 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
+#include <stdio.h>
+
+#include <boost/log/trivial.hpp>
+
 #include "../talkgroups.h"
 #include "../unit_tags.h"
-#include <boost/log/trivial.hpp>
-#include <stdio.h>
 //#include "../source.h"
 #include "p25_trunking.h"
 #include "parser.h"
@@ -35,10 +37,12 @@ class System {
   unsigned long wacn;
   unsigned long nac;
 
-public:
-  enum TalkgroupDisplayFormat { talkGroupDisplayFormat_id = 0,
-                                talkGroupDisplayFormat_id_tag = 1,
-                                talkGroupDisplayFormat_tag_id = 2 };
+ public:
+  enum TalkgroupDisplayFormat {
+    talkGroupDisplayFormat_id = 0,
+    talkGroupDisplayFormat_id_tag = 1,
+    talkGroupDisplayFormat_tag_id = 2
+  };
 
   Talkgroups *talkgroups;
   UnitTags *unit_tags;
@@ -136,7 +140,8 @@ public:
   unsigned long get_sys_id();
   unsigned long get_wacn();
   unsigned long get_nac();
-  void set_xor_mask(unsigned long sys_id, unsigned long wacn, unsigned long nac);
+  void set_xor_mask(unsigned long sys_id, unsigned long wacn,
+                    unsigned long nac);
   const char *get_xor_mask();
   bool update_status(TrunkMessage message);
   int get_sys_num();
@@ -191,7 +196,7 @@ public:
   boost::property_tree::ptree get_stats();
   boost::property_tree::ptree get_stats_current(float timeDiff);
 
-private:
+ private:
   TalkgroupDisplayFormat talkgroup_display_format;
   bool d_delaycreateoutput;
   bool d_hideEncrypted;

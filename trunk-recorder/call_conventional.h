@@ -4,11 +4,12 @@
 class System;
 class Recorder;
 
-#include "call.h"
 #include <string>
 
+#include "call.h"
+
 class Call_conventional : public Call {
-public:
+ public:
   Call_conventional(long t, double f, System *s, Config c);
   ~Call_conventional();
   time_t get_start_time();

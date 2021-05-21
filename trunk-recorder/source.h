@@ -1,12 +1,14 @@
 #ifndef SOURCE_H
 #define SOURCE_H
-#include "config.h"
 #include <gnuradio/basic_block.h>
 #include <gnuradio/top_block.h>
 #include <gnuradio/uhd/usrp_source.h>
+#include <osmosdr/source.h>
+
 #include <iostream>
 #include <numeric>
-#include <osmosdr/source.h>
+
+#include "config.h"
 //#include "recorders/recorder.h"
 #include "recorders/analog_recorder.h"
 #include "recorders/debug_recorder.h"
@@ -14,7 +16,6 @@
 #include "recorders/sigmf_recorder.h"
 
 class Source {
-
   int src_num;
   double min_hz;
   double max_hz;
@@ -52,11 +53,12 @@ class Source {
   std::string antenna;
   gr::basic_block_sptr source_block;
 
-public:
+ public:
   int get_num_available_digital_recorders();
   int get_num_available_analog_recorders();
   int get_num();
-  Source(double c, double r, double e, std::string driver, std::string device, Config *cfg);
+  Source(double c, double r, double e, std::string driver, std::string device,
+         Config *cfg);
   gr::basic_block_sptr get_src_block();
   double get_min_hz();
   double get_max_hz();
@@ -120,7 +122,8 @@ public:
   }
 
   inline gr::uhd::usrp_source::sptr cast_to_usrp_sptr(gr::basic_block_sptr p) {
-    return boost::dynamic_pointer_cast<gr::uhd::usrp_source, gr::basic_block>(p);
+    return boost::dynamic_pointer_cast<gr::uhd::usrp_source, gr::basic_block>(
+        p);
   }
 
   std::vector<Recorder *> get_recorders();

@@ -1,9 +1,9 @@
 #ifndef RECORDER_H
 #define RECORDER_H
 
-#include <cstdio>
-#include <fstream>
-#include <iostream>
+#include <gnuradio/filter/firdes.h>
+#include <gnuradio/hier_block2.h>
+#include <gnuradio/io_signature.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,10 +13,9 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/shared_ptr.hpp>
-
-#include <gnuradio/filter/firdes.h>
-#include <gnuradio/hier_block2.h>
-#include <gnuradio/io_signature.h>
+#include <cstdio>
+#include <fstream>
+#include <iostream>
 
 #if GNURADIO_VERSION < 0x030800
 #include <gnuradio/analog/sig_source_c.h>
@@ -39,17 +38,11 @@
 #endif
 
 #include <gnuradio/analog/quadrature_demod_cf.h>
-
-#include <gnuradio/blocks/file_sink.h>
-
 #include <gnuradio/block.h>
 #include <gnuradio/blocks/copy.h>
-#include <gnuradio/blocks/null_sink.h>
-
-#include <gnuradio/blocks/head.h>
-
 #include <gnuradio/blocks/file_sink.h>
-
+#include <gnuradio/blocks/head.h>
+#include <gnuradio/blocks/null_sink.h>
 #include <gr_blocks/nonstop_wavfile_sink.h>
 #include <op25_repeater/include/op25_repeater/rx_status.h>
 
@@ -59,8 +52,7 @@ unsigned GCD(unsigned u, unsigned v);
 std::vector<float> design_filter(double interpolation, double deci);
 
 class Recorder {
-
-public:
+ public:
   struct DecimSettings {
     long decim;
     long decim2;
@@ -94,7 +86,7 @@ public:
 
   virtual void process_message_queues(void){};
 
-protected:
+ protected:
   int recording_count;
   double recording_duration;
   std::string type;

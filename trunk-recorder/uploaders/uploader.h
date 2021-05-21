@@ -1,14 +1,15 @@
 #ifndef UPLOADER_H
 #define UPLOADER_H
 
-#include <boost/log/trivial.hpp>
 #include <curl/curl.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+
+#include <boost/log/trivial.hpp>
 #include <iostream>
 #include <istream>
 #include <ostream>
 #include <string>
-#include <sys/stat.h>
 
 #include "../call.h"
 #include "../formatter.h"
@@ -44,11 +45,12 @@ struct call_data_t {
 };
 
 class Uploader {
-public:
+ public:
   virtual int upload(struct call_data_t *call) = 0;
 
-protected:
-  static size_t write_callback(void *contents, size_t size, size_t nmemb, void *userp);
+ protected:
+  static size_t write_callback(void *contents, size_t size, size_t nmemb,
+                               void *userp);
 };
 
 #endif

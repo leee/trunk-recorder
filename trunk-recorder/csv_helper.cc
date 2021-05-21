@@ -18,24 +18,22 @@ std::istream &safeGetline(std::istream &is, std::string &t) {
     int c = sb->sbumpc();
 
     switch (c) {
-    case '\n':
-      return is;
+      case '\n':
+        return is;
 
-    case '\r':
+      case '\r':
 
-      if (sb->sgetc() == '\n')
-        sb->sbumpc();
-      return is;
+        if (sb->sgetc() == '\n') sb->sbumpc();
+        return is;
 
-    case EOF:
+      case EOF:
 
-      // Also handle the case when the last line has no line ending
-      if (t.empty())
-        is.setstate(std::ios::eofbit);
-      return is;
+        // Also handle the case when the last line has no line ending
+        if (t.empty()) is.setstate(std::ios::eofbit);
+        return is;
 
-    default:
-      t += (char)c;
+      default:
+        t += (char)c;
     }
   }
 }

@@ -1,7 +1,9 @@
 #include "broadcastify_uploader.h"
+
 #include "uploader.h"
 
-CURLcode BroadcastifyUploader::upload_audio_file(std::string converted, std::string url) {
+CURLcode BroadcastifyUploader::upload_audio_file(std::string converted,
+                                                 std::string url) {
   struct stat file_info;
 
   /* get the file size of the local file */
@@ -76,42 +78,30 @@ int BroadcastifyUploader::upload(struct call_data_t *call) {
 
   /* Fill in the file upload field. This makes libcurl load data from
      the given file name when curl_easy_perform() is called. */
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "metadata",
-               CURLFORM_FILE, call->status_filename,
-               CURLFORM_CONTENTTYPE, "application/json",
-               CURLFORM_END);
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "metadata",
+               CURLFORM_FILE, call->status_filename, CURLFORM_CONTENTTYPE,
+               "application/json", CURLFORM_END);
 
   /* Fill in the filename field */
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "filename",
-               CURLFORM_COPYCONTENTS, call->converted,
-               CURLFORM_END);
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "filename",
+               CURLFORM_COPYCONTENTS, call->converted, CURLFORM_END);
 
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "callDuration",
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "callDuration",
                CURLFORM_COPYCONTENTS, std::to_string(call->length).c_str(),
                CURLFORM_END);
 
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "systemId",
-               CURLFORM_COPYCONTENTS, std::to_string(call->bcfy_system_id).c_str(),
-               CURLFORM_END);
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "systemId",
+               CURLFORM_COPYCONTENTS,
+               std::to_string(call->bcfy_system_id).c_str(), CURLFORM_END);
 
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "apiKey",
-               CURLFORM_COPYCONTENTS, call->bcfy_api_key.c_str(),
-               CURLFORM_END);
+  curl_formadd(&formpost, &lastptr, CURLFORM_COPYNAME, "apiKey",
+               CURLFORM_COPYCONTENTS, call->bcfy_api_key.c_str(), CURLFORM_END);
 
   curl = curl_easy_init();
   multi_handle = curl_multi_init();
 
-  /* initialize custom header list (stating that Expect: 100-continue is not wanted */
+  /* initialize custom header list (stating that Expect: 100-continue is not
+   * wanted */
   headerlist = curl_slist_append(headerlist, "Expect:");
   if (curl && multi_handle) {
     /* what URL that receives this POST */
@@ -182,14 +172,14 @@ int BroadcastifyUploader::upload(struct call_data_t *call) {
       }
 
       switch (rc) {
-      case -1:
-        /* select error */
-        break;
-      case 0:
-      default:
-        /* timeout or readable/writable sockets */
-        curl_multi_perform(multi_handle, &still_running);
-        break;
+        case -1:
+          /* select error */
+          break;
+        case 0:
+        default:
+          /* timeout or readable/writable sockets */
+          curl_multi_perform(multi_handle, &still_running);
+          break;
       }
     }
 
@@ -208,13 +198,19 @@ int BroadcastifyUploader::upload(struct call_data_t *call) {
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
 
     if (res != CURLM_OK || response_code != 200) {
-      BOOST_LOG_TRIVIAL(error) << "[" << call->short_name << "]\tTG: " << call->talkgroup << "\tFreq: " << FormatFreq(call->freq) << "\tBroadcastify Metadata Upload Error: " << response_buffer;
+      BOOST_LOG_TRIVIAL(error)
+          << "[" << call->short_name << "]\tTG: " << call->talkgroup
+          << "\tFreq: " << FormatFreq(call->freq)
+          << "\tBroadcastify Metadata Upload Error: " << response_buffer;
       return 1;
     }
 
     std::size_t spacepos = response_buffer.find(' ');
     if (spacepos < 1) {
-      BOOST_LOG_TRIVIAL(error) << "[" << call->short_name << "]\tTG: " << call->talkgroup << "\tFreq: " << FormatFreq(call->freq) << "\tBroadcastify Metadata Upload Error: " << response_buffer;
+      BOOST_LOG_TRIVIAL(error)
+          << "[" << call->short_name << "]\tTG: " << call->talkgroup
+          << "\tFreq: " << FormatFreq(call->freq)
+          << "\tBroadcastify Metadata Upload Error: " << response_buffer;
       return 1;
     }
 
@@ -222,26 +218,39 @@ int BroadcastifyUploader::upload(struct call_data_t *call) {
     std::string message = response_buffer.substr(spacepos + 1);
 
     if (code == "1" && message == "SKIPPED---ALREADY-RECEIVED-THIS-CALL") {
-      BOOST_LOG_TRIVIAL(info) << "[" << call->short_name << "]\tTG: " << call->talkgroup << "\tFreq: " << FormatFreq(call->freq) << "\tBroadcastify Upload Skipped: " << message;
+      BOOST_LOG_TRIVIAL(info)
+          << "[" << call->short_name << "]\tTG: " << call->talkgroup
+          << "\tFreq: " << FormatFreq(call->freq)
+          << "\tBroadcastify Upload Skipped: " << message;
       return 0;
     }
 
     if (code != "0") {
-      BOOST_LOG_TRIVIAL(error) << "[" << call->short_name << "]\tTG: " << call->talkgroup << "\tFreq: " << FormatFreq(call->freq) << "\tBroadcastify Metadata Upload Error: " << message;
+      BOOST_LOG_TRIVIAL(error)
+          << "[" << call->short_name << "]\tTG: " << call->talkgroup
+          << "\tFreq: " << FormatFreq(call->freq)
+          << "\tBroadcastify Metadata Upload Error: " << message;
       return 1;
     }
 
     CURLcode audio_error = this->upload_audio_file(call->converted, message);
 
     if (audio_error) {
-      BOOST_LOG_TRIVIAL(error) << "[" << call->short_name << "]\tTG: " << call->talkgroup << "\tFreq: " << FormatFreq(call->freq) << "\tBroadcastify Audio Upload Error: " << curl_easy_strerror(audio_error);
+      BOOST_LOG_TRIVIAL(error)
+          << "[" << call->short_name << "]\tTG: " << call->talkgroup
+          << "\tFreq: " << FormatFreq(call->freq)
+          << "\tBroadcastify Audio Upload Error: "
+          << curl_easy_strerror(audio_error);
       return 1;
     }
 
     struct stat file_info;
     stat(call->converted, &file_info);
 
-    BOOST_LOG_TRIVIAL(info) << "[" << call->short_name << "]\tTG: " << call->talkgroup << "\tFreq: " << FormatFreq(call->freq) << "\tBroadcastify Upload Success - file size: " << file_info.st_size;
+    BOOST_LOG_TRIVIAL(info)
+        << "[" << call->short_name << "]\tTG: " << call->talkgroup
+        << "\tFreq: " << FormatFreq(call->freq)
+        << "\tBroadcastify Upload Success - file size: " << file_info.st_size;
     return 0;
   } else {
     return 1;

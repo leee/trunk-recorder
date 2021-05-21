@@ -3,8 +3,15 @@
 
 #define _USE_MATH_DEFINES
 
-#include <cstdio>
-#include <iostream>
+#include <gnuradio/analog/feedforward_agc_cc.h>
+#include <gnuradio/analog/pll_freqdet_cf.h>
+#include <gnuradio/analog/pwr_squelch_cc.h>
+#include <gnuradio/blocks/udp_sink.h>
+#include <gnuradio/digital/diff_phasor_cc.h>
+#include <gnuradio/filter/firdes.h>
+#include <gnuradio/filter/pfb_arb_resampler_ccf.h>
+#include <gnuradio/hier_block2.h>
+#include <gnuradio/io_signature.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,17 +20,8 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/shared_ptr.hpp>
-#include <gnuradio/blocks/udp_sink.h>
-
-#include <gnuradio/hier_block2.h>
-#include <gnuradio/io_signature.h>
-
-#include <gnuradio/analog/feedforward_agc_cc.h>
-#include <gnuradio/analog/pll_freqdet_cf.h>
-#include <gnuradio/analog/pwr_squelch_cc.h>
-#include <gnuradio/digital/diff_phasor_cc.h>
-#include <gnuradio/filter/firdes.h>
-#include <gnuradio/filter/pfb_arb_resampler_ccf.h>
+#include <cstdio>
+#include <iostream>
 
 #if GNURADIO_VERSION < 0x030800
 #include <gnuradio/analog/sig_source_c.h>
@@ -42,8 +40,13 @@
 #include <gnuradio/block.h>
 #include <gnuradio/blocks/complex_to_arg.h>
 #include <gnuradio/blocks/copy.h>
+#include <gnuradio/blocks/file_sink.h>
+#include <gnuradio/blocks/head.h>
 #include <gnuradio/blocks/short_to_float.h>
-
+#include <gnuradio/message.h>
+#include <gnuradio/msg_queue.h>
+#include <gr_blocks/freq_xlating_fft_filter.h>
+#include <gr_blocks/nonstop_wavfile_sink.h>
 #include <op25_repeater/fsk4_slicer_fb.h>
 #include <op25_repeater/gardner_costas_cc.h>
 #include <op25_repeater/include/op25_repeater/fsk4_demod_ff.h>
@@ -51,29 +54,24 @@
 #include <op25_repeater/include/op25_repeater/rx_status.h>
 #include <op25_repeater/vocoder.h>
 
-#include <gnuradio/blocks/file_sink.h>
-#include <gnuradio/blocks/head.h>
-#include <gnuradio/message.h>
-#include <gnuradio/msg_queue.h>
-
 #include "../config.h"
 #include "recorder.h"
-#include <gr_blocks/freq_xlating_fft_filter.h>
-#include <gr_blocks/nonstop_wavfile_sink.h>
 
 class Source;
 class debug_recorder;
 typedef boost::shared_ptr<debug_recorder> debug_recorder_sptr;
-debug_recorder_sptr make_debug_recorder(Source *src, std::string address, int port);
+debug_recorder_sptr make_debug_recorder(Source *src, std::string address,
+                                        int port);
 #include "../source.h"
 
 class debug_recorder : public gr::hier_block2, public Recorder {
-  friend debug_recorder_sptr make_debug_recorder(Source *src, std::string address, int port);
+  friend debug_recorder_sptr make_debug_recorder(Source *src,
+                                                 std::string address, int port);
 
-protected:
+ protected:
   debug_recorder(Source *src, std::string address, int port);
 
-public:
+ public:
   ~debug_recorder();
 
   void tune_freq(double f);
@@ -93,9 +91,9 @@ public:
   void initialize_prefilter();
   DecimSettings get_decim(long speed);
   void generate_arb_taps();
-  //void forecast(int noutput_items, gr_vector_int &ninput_items_required);
+  // void forecast(int noutput_items, gr_vector_int &ninput_items_required);
 
-private:
+ private:
   double chan_freq;
   double center_freq;
   bool qpsk_mod;
@@ -108,7 +106,7 @@ private:
   Config *config;
   Source *source;
   char filename[160];
-  //int num;
+  // int num;
   State state;
 
   double system_channel_rate;

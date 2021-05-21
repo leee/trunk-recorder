@@ -6,20 +6,21 @@
  * programs where a client connects and pushes data for logging, stress/load
  * testing, etc.
  */
-void stat_socket::send_sys_rates(std::vector<System *> systems, float timeDiff) {
-
-  if (m_open == false)
-    return;
+void stat_socket::send_sys_rates(std::vector<System *> systems,
+                                 float timeDiff) {
+  if (m_open == false) return;
   boost::property_tree::ptree nodes;
 
-  for (std::vector<System *>::iterator it = systems.begin(); it != systems.end(); it++) {
+  for (std::vector<System *>::iterator it = systems.begin();
+       it != systems.end(); it++) {
     System *system = *it;
     nodes.push_back(std::make_pair("", system->get_stats_current(timeDiff)));
   }
   send_object(nodes, "rates", "rates");
 }
 
-stat_socket::stat_socket() : m_open(false), m_done(false), m_config_sent(false) {
+stat_socket::stat_socket()
+    : m_open(false), m_done(false), m_config_sent(false) {
   // set up access channels to only log interesting things
   m_client.clear_access_channels(websocketpp::log::alevel::all);
   m_client.set_access_channels(websocketpp::log::alevel::connect);
@@ -40,19 +41,18 @@ stat_socket::stat_socket() : m_open(false), m_done(false), m_config_sent(false) 
   m_client.set_message_handler(bind(&stat_socket::on_message, this, _1, _2));
 }
 
-void stat_socket::send_config(std::vector<Source *> sources, std::vector<System *> systems) {
+void stat_socket::send_config(std::vector<Source *> sources,
+                              std::vector<System *> systems) {
+  if (m_open == false) return;
 
-  if (m_open == false)
-    return;
-
-  if (config_sent())
-    return;
+  if (config_sent()) return;
 
   boost::property_tree::ptree root;
   boost::property_tree::ptree systems_node;
   boost::property_tree::ptree sources_node;
 
-  for (std::vector<Source *>::iterator it = sources.begin(); it != sources.end(); it++) {
+  for (std::vector<Source *>::iterator it = sources.begin();
+       it != sources.end(); it++) {
     Source *source = *it;
     boost::property_tree::ptree source_node;
     source_node.put("source_num", source->get_num());
@@ -83,7 +83,8 @@ void stat_socket::send_config(std::vector<Source *> sources, std::vector<System 
     sources_node.push_back(std::make_pair("", source_node));
   }
 
-  for (std::vector<System *>::iterator it = systems.begin(); it != systems.end(); ++it) {
+  for (std::vector<System *>::iterator it = systems.begin();
+       it != systems.end(); ++it) {
     System *sys = (System *)*it;
 
     boost::property_tree::ptree sys_node;
@@ -102,18 +103,20 @@ void stat_socket::send_config(std::vector<Source *> sources, std::vector<System 
     sys_node.put("squelch_db", sys->get_squelch_db());
     std::vector<double> channels;
 
-    if ((sys->get_system_type() == "conventional") || (sys->get_system_type() == "conventionalP25")) {
+    if ((sys->get_system_type() == "conventional") ||
+        (sys->get_system_type() == "conventionalP25")) {
       channels = sys->get_channels();
     } else {
       channels = sys->get_control_channels();
     }
 
-    //std::cout << "starts: " << std::endl;
+    // std::cout << "starts: " << std::endl;
 
-    for (std::vector<double>::iterator chan_it = channels.begin(); chan_it != channels.end(); chan_it++) {
+    for (std::vector<double>::iterator chan_it = channels.begin();
+         chan_it != channels.end(); chan_it++) {
       double channel = *chan_it;
       boost::property_tree::ptree channel_node;
-      //std::cout << "Hello: " << channel << std::endl;
+      // std::cout << "Hello: " << channel << std::endl;
       channel_node.put("", channel);
 
       // Add this node to the list.
@@ -157,11 +160,11 @@ void stat_socket::send_config(std::vector<Source *> sources, std::vector<System 
 }
 
 void stat_socket::send_systems(std::vector<System *> systems) {
-  if (m_open == false)
-    return;
+  if (m_open == false) return;
   boost::property_tree::ptree node;
 
-  for (std::vector<System *>::iterator it = systems.begin(); it != systems.end(); it++) {
+  for (std::vector<System *>::iterator it = systems.begin();
+       it != systems.end(); it++) {
     System *system = *it;
     node.push_back(std::make_pair("", system->get_stats()));
   }
@@ -169,18 +172,17 @@ void stat_socket::send_systems(std::vector<System *> systems) {
 }
 
 void stat_socket::send_system(System *system) {
-  if (m_open == false)
-    return;
+  if (m_open == false) return;
 
   send_object(system->get_stats(), "system", "system");
 }
 
 void stat_socket::send_calls_active(std::vector<Call *> calls) {
-  if (m_open == false)
-    return;
+  if (m_open == false) return;
   boost::property_tree::ptree node;
 
-  for (std::vector<Call *>::iterator it = calls.begin(); it != calls.end(); it++) {
+  for (std::vector<Call *>::iterator it = calls.begin(); it != calls.end();
+       it++) {
     Call *call = *it;
     if (call->get_state() == recording) {
       node.push_back(std::make_pair("", call->get_stats()));
@@ -191,12 +193,11 @@ void stat_socket::send_calls_active(std::vector<Call *> calls) {
 }
 
 void stat_socket::send_recorders(std::vector<Recorder *> recorders) {
-
-  if (m_open == false)
-    return;
+  if (m_open == false) return;
   boost::property_tree::ptree node;
 
-  for (std::vector<Recorder *>::iterator it = recorders.begin(); it != recorders.end(); it++) {
+  for (std::vector<Recorder *>::iterator it = recorders.begin();
+       it != recorders.end(); it++) {
     Recorder *recorder = *it;
     node.push_back(std::make_pair("", recorder->get_stats()));
   }
@@ -205,29 +206,26 @@ void stat_socket::send_recorders(std::vector<Recorder *> recorders) {
 }
 
 void stat_socket::send_call_start(Call *call) {
-  if (m_open == false)
-    return;
+  if (m_open == false) return;
 
   send_object(call->get_stats(), "call", "call_start");
 }
 
 void stat_socket::send_call_end(Call *call) {
-  if (m_open == false)
-    return;
+  if (m_open == false) return;
 
   send_object(call->get_stats(), "call", "call_end");
 }
 
 void stat_socket::send_recorder(Recorder *recorder) {
-  if (m_open == false)
-    return;
+  if (m_open == false) return;
 
   send_object(recorder->get_stats(), "recorder", "recorder");
 }
 
-void stat_socket::send_object(boost::property_tree::ptree data, std::string name, std::string type) {
-  if (m_open == false)
-    return;
+void stat_socket::send_object(boost::property_tree::ptree data,
+                              std::string name, std::string type) {
+  if (m_open == false) return;
   boost::property_tree::ptree root;
 
   root.add_child(name, data);
@@ -260,10 +258,13 @@ void stat_socket::open_stat() {
   }
 
   websocketpp::lib::error_code ec;
-  client::connection_ptr con = m_client.get_connection(this->m_config->status_server, ec);
+  client::connection_ptr con =
+      m_client.get_connection(this->m_config->status_server, ec);
 
   if (ec) {
-    m_client.get_alog().write(websocketpp::log::alevel::app, "open_stat: Get WebSocket Connection Error: " + ec.message());
+    m_client.get_alog().write(
+        websocketpp::log::alevel::app,
+        "open_stat: Get WebSocket Connection Error: " + ec.message());
     return;
   }
 
@@ -279,7 +280,8 @@ void stat_socket::open_stat() {
   // websocketpp::lib::thread asio_thread(&client::run, &m_client);
 
   // Create a thread to run the telemetry loop
-  // websocketpp::lib::thread telemetry_thread(&stat_socket::telemetry_loop,this);
+  // websocketpp::lib::thread
+  // telemetry_thread(&stat_socket::telemetry_loop,this);
 
   // asio_thread.join();
   // telemetry_thread.join();
@@ -305,8 +307,9 @@ bool stat_socket::config_sent() {
 }
 // The open handler will signal that we are ready to start sending telemetry
 void stat_socket::on_open(websocketpp::connection_hdl) {
-  m_client.get_alog().write(websocketpp::log::alevel::app,
-                            "on_open: WebSocket Connection opened, starting telemetry!");
+  m_client.get_alog().write(
+      websocketpp::log::alevel::app,
+      "on_open: WebSocket Connection opened, starting telemetry!");
 
   {
     // de scope the lock before calling the callback
@@ -321,8 +324,9 @@ void stat_socket::on_open(websocketpp::connection_hdl) {
 void stat_socket::on_close(websocketpp::connection_hdl) {
   std::stringstream stream_num;
   std::string str_num;
-  m_client.get_alog().write(websocketpp::log::alevel::app,
-                            "on_close: WebSocket Connection closed, stopping telemetry!");
+  m_client.get_alog().write(
+      websocketpp::log::alevel::app,
+      "on_close: WebSocket Connection closed, stopping telemetry!");
 
   scoped_lock guard(m_lock);
   m_open = false;
@@ -334,14 +338,17 @@ void stat_socket::on_close(websocketpp::connection_hdl) {
   stream_num << reconnect_delay;
   stream_num >> str_num;
   reconnect_time = time(NULL) + reconnect_delay;
-  m_client.get_alog().write(websocketpp::log::alevel::app, "on_close: Will try to reconnect in:  " + str_num);
+  m_client.get_alog().write(websocketpp::log::alevel::app,
+                            "on_close: Will try to reconnect in:  " + str_num);
 }
 
 // The fail handler will signal that we should stop sending telemetry
 void stat_socket::on_fail(websocketpp::connection_hdl) {
   std::stringstream stream_num;
   std::string str_num;
-  m_client.get_alog().write(websocketpp::log::alevel::app, "on_fail: WebSocket Connection failed, stopping telemetry!");
+  m_client.get_alog().write(
+      websocketpp::log::alevel::app,
+      "on_fail: WebSocket Connection failed, stopping telemetry!");
 
   scoped_lock guard(m_lock);
   m_open = false;
@@ -354,12 +361,15 @@ void stat_socket::on_fail(websocketpp::connection_hdl) {
     stream_num << reconnect_delay;
     stream_num >> str_num;
     reconnect_time = time(NULL) + reconnect_delay;
-    m_client.get_alog().write(websocketpp::log::alevel::app, "on_fail: Will try to reconnect in:  " + str_num);
+    m_client.get_alog().write(websocketpp::log::alevel::app,
+                              "on_fail: Will try to reconnect in:  " + str_num);
   }
 }
 
-void stat_socket::on_message(websocketpp::connection_hdl, client::message_ptr msg) {
-  //Need to receive the message so they don't build up. TrunkPlayer sends a message to acknowledge what TrunkRecorder sends.
+void stat_socket::on_message(websocketpp::connection_hdl,
+                             client::message_ptr msg) {
+  // Need to receive the message so they don't build up. TrunkPlayer sends a
+  // message to acknowledge what TrunkRecorder sends.
 }
 
 void stat_socket::send_stat(std::string val) {
@@ -379,9 +389,10 @@ void stat_socket::send_stat(std::string val) {
   }
 }
 
-void stat_socket::send_signal(long unitId, const char *signaling_type, gr::blocks::SignalType sig_type, Call *call, System *system, Recorder *recorder) {
-  if (m_open == false || m_config->broadcast_signals == false)
-    return;
+void stat_socket::send_signal(long unitId, const char *signaling_type,
+                              gr::blocks::SignalType sig_type, Call *call,
+                              System *system, Recorder *recorder) {
+  if (m_open == false || m_config->broadcast_signals == false) return;
 
   boost::property_tree::ptree signal;
   signal.put("unit_id", unitId);

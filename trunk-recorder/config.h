@@ -1,10 +1,11 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <stdlib.h>
+
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
-#include <stdlib.h>
 #include <string>
 
 /*
@@ -33,6 +34,7 @@ struct Config {
   bool broadcast_signals;
 };
 
-//Config load_config(std::string config_file, std::vector<Source *> &sources, std::vector<System *> &systems);
+// Config load_config(std::string config_file, std::vector<Source *> &sources,
+// std::vector<System *> &systems);
 
 #endif

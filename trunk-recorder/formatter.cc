@@ -1,4 +1,5 @@
 #include "formatter.h"
+
 #include <boost/lexical_cast.hpp>
 
 int frequencyFormat = 0;
@@ -13,9 +14,7 @@ boost::format FormatFreq(double f) {
     return boost::format("%e") % f;
 }
 
-boost::format FormatSamplingRate(float f) {
-  return boost::format("%.0f") % f;
-}
+boost::format FormatSamplingRate(float f) { return boost::format("%.0f") % f; }
 
 std::string FormatState(State state) {
   if (statusAsString) {

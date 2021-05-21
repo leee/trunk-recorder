@@ -6,7 +6,6 @@
 #include <boost/intrusive_ptr.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/tokenizer.hpp>
-
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -15,4 +14,4 @@
 
 std::istream &safeGetline(std::istream &is, std::string &t);
 
-#endif // _CSV_HELPER_H_
+#endif  // _CSV_HELPER_H_

@@ -1,5 +1,6 @@
 
 #include "analog_recorder.h"
+
 #include "../../lib/gr_blocks/decoder_wrapper_impl.h"
 #include "../../lib/gr_blocks/nonstop_wavfile_sink_impl.h"
 #include "../formatter.h"
@@ -8,7 +9,7 @@
 using namespace std;
 
 bool analog_recorder::logging = false;
-//static int rec_counter = 0;
+// static int rec_counter = 0;
 
 analog_recorder_sptr make_analog_recorder(Source *src) {
   return gnuradio::get_initial_sptr(new analog_recorder(src));
@@ -17,8 +18,8 @@ analog_recorder_sptr make_analog_recorder(Source *src) {
 /*! \brief Calculate taps for FM de-emph IIR filter. */
 void analog_recorder::calculate_iir_taps(double tau) {
   // copied from fm_emph.py in gr-analog
-  double w_c;  // Digital corner frequency
-  double w_ca; // Prewarped analog corner frequency
+  double w_c;   // Digital corner frequency
+  double w_ca;  // Prewarped analog corner frequency
   double k, z1, p1, b0;
   double fs = system_channel_rate;
 
@@ -44,7 +45,7 @@ analog_recorder::analog_recorder(Source *src)
                       gr::io_signature::make(1, 1, sizeof(gr_complex)),
                       gr::io_signature::make(0, 0, sizeof(float))),
       Recorder("A") {
-  //int nchars;
+  // int nchars;
 
   source = src;
   chan_freq = source->get_center();
@@ -64,25 +65,30 @@ analog_recorder::analog_recorder(Source *src)
 
   float offset = 0;
 
-  //int samp_per_sym        = 10;
-  system_channel_rate = 96000; //4800 * samp_per_sym;
-  wave_sample_rate = 16000;    // Must be an integer decimation of system_channel_rate
-                               /*  int decim               = floor(samp_rate / 384000);
-
-  double pre_channel_rate = samp_rate / decim;*/
+  // int samp_per_sym        = 10;
+  system_channel_rate = 96000;  // 4800 * samp_per_sym;
+  wave_sample_rate =
+      16000;  // Must be an integer decimation of system_channel_rate
+              /*  int decim               = floor(samp_rate / 384000);
+            
+double pre_channel_rate = samp_rate / decim;*/
 
   int initial_decim = floor(samp_rate / 480000);
   initial_rate = double(samp_rate) / double(initial_decim);
   int decim = floor(initial_rate / system_channel_rate);
   double resampled_rate = double(initial_rate) / double(decim);
 
-  inital_lpf_taps = gr::filter::firdes::low_pass_2(1.0, samp_rate, 96000, 30000, 100, gr::filter::firdes::WIN_HANN);
-  //  channel_lpf_taps =  gr::filter::firdes::low_pass_2(1.0, pre_channel_rate, 5000, 2000, 60);
-  channel_lpf_taps = gr::filter::firdes::low_pass_2(1.0, initial_rate, 4000, 1000, 100);
+  inital_lpf_taps = gr::filter::firdes::low_pass_2(
+      1.0, samp_rate, 96000, 30000, 100, gr::filter::firdes::WIN_HANN);
+  //  channel_lpf_taps =  gr::filter::firdes::low_pass_2(1.0, pre_channel_rate,
+  //  5000, 2000, 60);
+  channel_lpf_taps =
+      gr::filter::firdes::low_pass_2(1.0, initial_rate, 4000, 1000, 100);
 
   std::vector<gr_complex> dest(inital_lpf_taps.begin(), inital_lpf_taps.end());
 
-  prefilter = make_freq_xlating_fft_filter(initial_decim, dest, offset, samp_rate);
+  prefilter =
+      make_freq_xlating_fft_filter(initial_decim, dest, offset, samp_rate);
 
   channel_lpf = gr::filter::fft_filter_ccf::make(decim, channel_lpf_taps);
 
@@ -97,25 +103,33 @@ analog_recorder::analog_recorder(Source *src)
   // width of 0.5.  If rate < 1, we need to filter to less
   // than half the output signal's bw to avoid aliasing, so
   // the half-band here is 0.5*rate.
-  //double percent = 0.80;
-  double percent = 1.00; // Slightly widening this filter helps wideband and makes the audio a little better when using a higher sample rate
+  // double percent = 0.80;
+  double percent =
+      1.00;  // Slightly widening this filter helps wideband and makes the audio
+             // a little better when using a higher sample rate
 
   if (arb_rate <= 1) {
     double halfband = 0.5 * arb_rate;
     double bw = percent * halfband;
     double tb = (percent / 2.0) * halfband;
 
-    // BOOST_LOG_TRIVIAL(info) << "Arb Rate: " << arb_rate << " Half band: " << halfband << " bw: " << bw << " tb: " <<
-    // tb;
+    // BOOST_LOG_TRIVIAL(info) << "Arb Rate: " << arb_rate << " Half band: " <<
+    // halfband << " bw: " << bw << " tb: " << tb;
 
     // As we drop the bw factor, the optfir filter has a harder time converging;
     // using the firdes method here for better results.
-    arb_taps = gr::filter::firdes::low_pass_2(arb_size, arb_size, bw, tb, arb_atten,
-                                              gr::filter::firdes::WIN_BLACKMAN_HARRIS);
-    double tap_total = inital_lpf_taps.size() + channel_lpf_taps.size() + arb_taps.size();
-    BOOST_LOG_TRIVIAL(info) << "Analog Recorder Taps - initial: " << inital_lpf_taps.size() << " channel: " << channel_lpf_taps.size() << " ARB: " << arb_taps.size() << " Total: " << tap_total;
+    arb_taps =
+        gr::filter::firdes::low_pass_2(arb_size, arb_size, bw, tb, arb_atten,
+                                       gr::filter::firdes::WIN_BLACKMAN_HARRIS);
+    double tap_total =
+        inital_lpf_taps.size() + channel_lpf_taps.size() + arb_taps.size();
+    BOOST_LOG_TRIVIAL(info)
+        << "Analog Recorder Taps - initial: " << inital_lpf_taps.size()
+        << " channel: " << channel_lpf_taps.size()
+        << " ARB: " << arb_taps.size() << " Total: " << tap_total;
   } else {
-    BOOST_LOG_TRIVIAL(error) << "Something is probably wrong! Resampling rate too low";
+    BOOST_LOG_TRIVIAL(error)
+        << "Something is probably wrong! Resampling rate too low";
     exit(1);
   }
 
@@ -130,8 +144,9 @@ analog_recorder::analog_recorder(Source *src)
   squelch = gr::analog::pwr_squelch_cc::make(squelch_db, 0.01, 10, false);
 
   //  based on squelch code form ham2mon
-  // set low -200 since its after demod and its just gate for previous squelch so that the audio
-  // recording doesn't contain blank spaces between transmissions
+  // set low -200 since its after demod and its just gate for previous squelch
+  // so that the audio recording doesn't contain blank spaces between
+  // transmissions
   squelch_two = gr::analog::pwr_squelch_ff::make(-200, 0.01, 0, true);
 
   // k = quad_rate/(2*math.pi*max_dev) = 48k / (6.283185*5000) = 1.527
@@ -140,37 +155,51 @@ analog_recorder::analog_recorder(Source *src)
   /* demodulator gain */
   quad_gain = system_channel_rate / (2.0 * M_PI * d_max_dev);
   demod = gr::analog::quadrature_demod_cf::make(quad_gain);
-  levels = gr::blocks::multiply_const_ff::make(1); // 33);
+  levels = gr::blocks::multiply_const_ff::make(1);  // 33);
   valve = gr::blocks::copy::make(sizeof(gr_complex));
   valve->set_enabled(false);
 
   /* de-emphasis */
-  d_tau = 0.000075; // 75us
+  d_tau = 0.000075;  // 75us
   d_fftaps.resize(2);
   d_fbtaps.resize(2);
   calculate_iir_taps(d_tau);
   deemph = gr::filter::iir_filter_ffd::make(d_fftaps, d_fbtaps);
 
-  audio_resampler_taps = design_filter(1, (system_channel_rate / wave_sample_rate)); // Calculated to make sample rate changable -- must be an integer
+  audio_resampler_taps =
+      design_filter(1, (system_channel_rate /
+                        wave_sample_rate));  // Calculated to make sample rate
+                                             // changable -- must be an integer
 
   // downsample from 48k to 8k
-  decim_audio = gr::filter::fir_filter_fff::make((system_channel_rate / wave_sample_rate), audio_resampler_taps); // Calculated to make sample rate changable
+  decim_audio = gr::filter::fir_filter_fff::make(
+      (system_channel_rate / wave_sample_rate),
+      audio_resampler_taps);  // Calculated to make sample rate changable
 
-  //tm *ltm = localtime(&starttime);
+  // tm *ltm = localtime(&starttime);
 
-  wav_sink = gr::blocks::nonstop_wavfile_sink_impl::make(1, wave_sample_rate, 16, true); //  Configurable
+  wav_sink = gr::blocks::nonstop_wavfile_sink_impl::make(
+      1, wave_sample_rate, 16, true);  //  Configurable
 
   BOOST_LOG_TRIVIAL(info) << "Creating decoder sink...";
-  decoder_sink = gr::blocks::decoder_wrapper_impl::make(wave_sample_rate, src->get_num(), std::bind(&analog_recorder::decoder_callback_handler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+  decoder_sink = gr::blocks::decoder_wrapper_impl::make(
+      wave_sample_rate, src->get_num(),
+      std::bind(&analog_recorder::decoder_callback_handler, this,
+                std::placeholders::_1, std::placeholders::_2,
+                std::placeholders::_3));
   BOOST_LOG_TRIVIAL(info) << "Decoder sink created!";
 
   // Analog audio band pass from 300 to 3000 Hz
-  // can't use gnuradio.filter.firdes.band_pass since we have different transition widths
-  // 300 Hz high pass (275-325 Hz): removes CTCSS/DCS and Type II 150 bps Low Speed Data (LSD), or "FSK wobble"
-  high_f_taps = gr::filter::firdes::high_pass(1, wave_sample_rate, 300, 50, gr::filter::firdes::WIN_HANN); // Configurable
+  // can't use gnuradio.filter.firdes.band_pass since we have different
+  // transition widths 300 Hz high pass (275-325 Hz): removes CTCSS/DCS and Type
+  // II 150 bps Low Speed Data (LSD), or "FSK wobble"
+  high_f_taps = gr::filter::firdes::high_pass(
+      1, wave_sample_rate, 300, 50,
+      gr::filter::firdes::WIN_HANN);  // Configurable
   high_f = gr::filter::fir_filter_fff::make(1, high_f_taps);
   // 3000 Hz low pass (3000-3500 Hz)
-  low_f_taps = gr::filter::firdes::low_pass(1, wave_sample_rate, 3250, 500, gr::filter::firdes::WIN_HANN);
+  low_f_taps = gr::filter::firdes::low_pass(1, wave_sample_rate, 3250, 500,
+                                            gr::filter::firdes::WIN_HANN);
   low_f = gr::filter::fir_filter_fff::make(1, low_f_taps);
 
   // using squelch
@@ -196,12 +225,8 @@ analog_recorder::analog_recorder(Source *src)
 
 analog_recorder::~analog_recorder() {}
 
-State analog_recorder::get_state() {
-  return state;
-}
-int analog_recorder::get_num() {
-  return rec_num;
-}
+State analog_recorder::get_state() { return state; }
+int analog_recorder::get_num() { return rec_num; }
 
 void analog_recorder::stop() {
   if (state == active) {
@@ -210,8 +235,10 @@ void analog_recorder::stop() {
     valve->set_enabled(false);
     wav_sink->close();
   } else {
-
-    BOOST_LOG_TRIVIAL(error) << "analog_recorder.cc: Stopping an inactive Logger \t[ " << rec_num << " ] - freq[ " << FormatFreq(chan_freq) << "] \t talkgroup[ " << talkgroup << " ]";
+    BOOST_LOG_TRIVIAL(error)
+        << "analog_recorder.cc: Stopping an inactive Logger \t[ " << rec_num
+        << " ] - freq[ " << FormatFreq(chan_freq) << "] \t talkgroup[ "
+        << talkgroup << " ]";
   }
 
   decoder_sink->set_mdc_enabled(false);
@@ -224,9 +251,7 @@ void analog_recorder::process_message_queues() {
   decoder_sink->process_message_queues();
 }
 
-bool analog_recorder::is_analog() {
-  return true;
-}
+bool analog_recorder::is_analog() { return true; }
 
 bool analog_recorder::is_active() {
   if (state == active) {
@@ -243,33 +268,19 @@ bool analog_recorder::is_idle() {
   return true;
 }
 
-long analog_recorder::get_talkgroup() {
-  return talkgroup;
-}
+long analog_recorder::get_talkgroup() { return talkgroup; }
 
-double analog_recorder::get_freq() {
-  return chan_freq;
-}
+double analog_recorder::get_freq() { return chan_freq; }
 
-Source *analog_recorder::get_source() {
-  return source;
-}
+Source *analog_recorder::get_source() { return source; }
 
-int analog_recorder::lastupdate() {
-  return time(NULL) - timestamp;
-}
+int analog_recorder::lastupdate() { return time(NULL) - timestamp; }
 
-long analog_recorder::elapsed() {
-  return time(NULL) - starttime;
-}
+long analog_recorder::elapsed() { return time(NULL) - starttime; }
 
-time_t analog_recorder::get_start_time() {
-  return starttime;
-}
+time_t analog_recorder::get_start_time() { return starttime; }
 
-char *analog_recorder::get_filename() {
-  return filename;
-}
+char *analog_recorder::get_filename() { return filename; }
 
 double analog_recorder::get_current_length() {
   return wav_sink->length_in_seconds();
@@ -281,11 +292,14 @@ void analog_recorder::tune_offset(double f) {
   prefilter->set_center_freq(offset_amount);
 }
 
-void analog_recorder::decoder_callback_handler(long unitId, const char *signaling_type, gr::blocks::SignalType signal) {
+void analog_recorder::decoder_callback_handler(long unitId,
+                                               const char *signaling_type,
+                                               gr::blocks::SignalType signal) {
   if (call != NULL) {
     call->add_signal_source(unitId, signaling_type, signal);
 
-    process_signal(unitId, signaling_type, signal, call, call->get_system(), this);
+    process_signal(unitId, signaling_type, signal, call, call->get_system(),
+                   this);
   } else {
     process_signal(unitId, signaling_type, signal, NULL, NULL, this);
   }
@@ -310,11 +324,13 @@ void analog_recorder::start(Call *call) {
 
   squelch_db = system->get_squelch_db();
   squelch->set_threshold(squelch_db);
-  //BOOST_LOG_TRIVIAL(error) << "Setting squelch to: " << squelch_db << " block says: " << squelch->threshold();
+  // BOOST_LOG_TRIVIAL(error) << "Setting squelch to: " << squelch_db << " block
+  // says: " << squelch->threshold();
   levels->set_k(system->get_analog_levels());
   int d_max_dev = system->get_max_dev();
   double d_filter_width = system->get_filter_width();
-  channel_lpf_taps = gr::filter::firdes::low_pass_2(1.0, initial_rate, d_max_dev, 1000, 100);
+  channel_lpf_taps =
+      gr::filter::firdes::low_pass_2(1.0, initial_rate, d_max_dev, 1000, 100);
   channel_lpf->set_taps(channel_lpf_taps);
   quad_gain = system_channel_rate / (2.0 * M_PI * (d_max_dev + 1000));
   demod->set_gain(quad_gain);

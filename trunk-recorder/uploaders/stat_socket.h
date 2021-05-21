@@ -2,6 +2,7 @@
 #define STAT_SOCKET_H
 
 #include <time.h>
+
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_no_tls_client.hpp>
 
@@ -16,11 +17,13 @@
 #include <websocketpp/common/thread.hpp>
 
 typedef websocketpp::client<websocketpp::config::asio_client> client;
-//typedef websocketpp::retry_client_endpoint<websocketpp::retry_config<websocketpp::config::asio_client>> client;
+// typedef
+// websocketpp::retry_client_endpoint<websocketpp::retry_config<websocketpp::config::asio_client>>
+// client;
 typedef websocketpp::lib::lock_guard<websocketpp::lib::mutex> scoped_lock;
 
 class stat_socket {
-public:
+ public:
   stat_socket();
   void send_stat(std::string val);
   void poll_one();
@@ -33,7 +36,8 @@ public:
   bool is_open();
   bool config_sent();
   void send_calls_active(std::vector<Call *> calls);
-  void send_config(std::vector<Source *> sources, std::vector<System *> systems);
+  void send_config(std::vector<Source *> sources,
+                   std::vector<System *> systems);
   void send_sys_rates(std::vector<System *> systems, float timeDiff);
   void send_call_start(Call *call);
   void send_call_end(Call *call);
@@ -42,9 +46,11 @@ public:
   void send_recorders(std::vector<Recorder *> recorders);
   void send_systems(std::vector<System *> systems);
   void send_system(System *systems);
-  void send_signal(long unitId, const char *signaling_type, gr::blocks::SignalType sig_type, Call *call, System *system, Recorder *recorder);
+  void send_signal(long unitId, const char *signaling_type,
+                   gr::blocks::SignalType sig_type, Call *call, System *system,
+                   Recorder *recorder);
 
-private:
+ private:
   void reopen_stat();
   client m_client;
   websocketpp::connection_hdl m_hdl;
@@ -57,7 +63,8 @@ private:
   bool m_config_sent;
   Config *m_config;
   void (*m_callback)(void);
-  void send_object(boost::property_tree::ptree data, std::string name, std::string type);
+  void send_object(boost::property_tree::ptree data, std::string name,
+                   std::string type);
 };
 
 #endif

@@ -5,12 +5,12 @@
 #include <boost/intrusive_ptr.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/tokenizer.hpp>
-
-#include "csv_helper.h"
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+
+#include "csv_helper.h"
 
 UnitTags::UnitTags() {}
 
@@ -22,7 +22,8 @@ void UnitTags::load_unit_tags(std::string filename) {
   std::ifstream in(filename.c_str());
 
   if (!in.is_open()) {
-    BOOST_LOG_TRIVIAL(error) << "Error Opening Unit Tag File: " << filename << std::endl;
+    BOOST_LOG_TRIVIAL(error)
+        << "Error Opening Unit Tag File: " << filename << std::endl;
     return;
   }
 
@@ -35,7 +36,7 @@ void UnitTags::load_unit_tags(std::string filename) {
   int lines_read = 0;
   int lines_pushed = 0;
 
-  while (!safeGetline(in, line).eof()) // this works with \r, \n, or \r\n
+  while (!safeGetline(in, line).eof())  // this works with \r, \n, or \r\n
   {
     if (line.size() && (line[line.size() - 1] == '\r')) {
       line = line.substr(0, line.size() - 1);
@@ -43,8 +44,7 @@ void UnitTags::load_unit_tags(std::string filename) {
 
     lines_read++;
 
-    if (line == "")
-      continue;
+    if (line == "") continue;
 
     t_tokenizer tok(line, sep);
 
@@ -56,7 +56,8 @@ void UnitTags::load_unit_tags(std::string filename) {
     vec.assign(tok.begin(), tok.end());
 
     if (vec.size() < 2) {
-      BOOST_LOG_TRIVIAL(error) << "Malformed talkgroup entry at line " << lines_read << ".";
+      BOOST_LOG_TRIVIAL(error)
+          << "Malformed talkgroup entry at line " << lines_read << ".";
       continue;
     }
 
@@ -68,8 +69,12 @@ void UnitTags::load_unit_tags(std::string filename) {
   if (lines_pushed != lines_read) {
     // The parser above is pretty brittle. This will help with debugging it, for
     // now.
-    BOOST_LOG_TRIVIAL(error) << "Warning: skipped " << lines_read - lines_pushed << " of " << lines_read << " unit tag entries! Invalid format?";
-    BOOST_LOG_TRIVIAL(error) << "The format is very particular. See  https://github.com/robotastic/trunk-recorder for example input.";
+    BOOST_LOG_TRIVIAL(error)
+        << "Warning: skipped " << lines_read - lines_pushed << " of "
+        << lines_read << " unit tag entries! Invalid format?";
+    BOOST_LOG_TRIVIAL(error)
+        << "The format is very particular. See  "
+           "https://github.com/robotastic/trunk-recorder for example input.";
   } else {
     BOOST_LOG_TRIVIAL(info) << "Read " << lines_pushed << " unit tags.";
   }
@@ -78,7 +83,8 @@ void UnitTags::load_unit_tags(std::string filename) {
 UnitTag *UnitTags::find_unit_tag(long tg_number) {
   UnitTag *tg_match = NULL;
 
-  for (std::vector<UnitTag *>::iterator it = unit_tags.begin(); it != unit_tags.end(); ++it) {
+  for (std::vector<UnitTag *>::iterator it = unit_tags.begin();
+       it != unit_tags.end(); ++it) {
     UnitTag *tg = (UnitTag *)*it;
 
     if (tg->number == tg_number) {

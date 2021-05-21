@@ -1,9 +1,10 @@
 #ifndef ANALOG_RECORDER_H
 #define ANALOG_RECORDER_H
 
-#include <cstdio>
-#include <fstream>
-#include <iostream>
+#include <gnuradio/block.h>
+#include <gnuradio/blocks/copy.h>
+#include <gnuradio/hier_block2.h>
+#include <gnuradio/io_signature.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,42 +14,36 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/shared_ptr.hpp>
-
-#include <gnuradio/hier_block2.h>
-#include <gnuradio/io_signature.h>
-
-#include <gnuradio/block.h>
-#include <gnuradio/blocks/copy.h>
+#include <cstdio>
+#include <fstream>
+#include <iostream>
 #if GNURADIO_VERSION < 0x030800
-#include <gnuradio/filter/fir_filter_fff.h>
-
 #include <gnuradio/blocks/multiply_const_ff.h>
+#include <gnuradio/filter/fir_filter_fff.h>
 #else
 #include <gnuradio/blocks/multiply_const.h>
 #include <gnuradio/filter/fir_filter_blk.h>
 #endif
-#include <gnuradio/filter/fft_filter_ccf.h>
-#include <gnuradio/filter/firdes.h>
-#include <gnuradio/filter/iir_filter_ffd.h>
-
 #include <gnuradio/analog/pwr_squelch_cc.h>
 #include <gnuradio/analog/pwr_squelch_ff.h>
 #include <gnuradio/analog/quadrature_demod_cf.h>
-
 #include <gnuradio/blocks/float_to_short.h>
-
+#include <gnuradio/filter/fft_filter_ccf.h>
+#include <gnuradio/filter/firdes.h>
+#include <gnuradio/filter/iir_filter_ffd.h>
 #include <gnuradio/filter/pfb_arb_resampler_ccf.h>
 
 class Source;
 class analog_recorder;
 
+#include <gr_blocks/decoder_wrapper.h>
+#include <gr_blocks/freq_xlating_fft_filter.h>
+#include <gr_blocks/nonstop_wavfile_sink.h>
+
 #include "../config.h"
 #include "../lib/gr_blocks/decoder_wrapper.h"
 #include "../systems/system.h"
 #include "recorder.h"
-#include <gr_blocks/decoder_wrapper.h>
-#include <gr_blocks/freq_xlating_fft_filter.h>
-#include <gr_blocks/nonstop_wavfile_sink.h>
 
 typedef boost::shared_ptr<analog_recorder> analog_recorder_sptr;
 
@@ -59,10 +54,10 @@ analog_recorder_sptr make_analog_recorder(Source *src);
 class analog_recorder : public gr::hier_block2, public Recorder {
   friend analog_recorder_sptr make_analog_recorder(Source *src);
 
-protected:
+ protected:
   analog_recorder(Source *src);
 
-public:
+ public:
   ~analog_recorder();
   void tune_offset(double f);
   void start(Call *call);
@@ -83,9 +78,10 @@ public:
   static bool logging;
 
   void process_message_queues(void);
-  void decoder_callback_handler(long unitId, const char *signaling_type, gr::blocks::SignalType signal);
+  void decoder_callback_handler(long unitId, const char *signaling_type,
+                                gr::blocks::SignalType signal);
 
-private:
+ private:
   double center_freq, chan_freq;
   long talkgroup;
   long samp_rate;
@@ -143,4 +139,4 @@ private:
   void setup_decoders_for_system(System *system);
 };
 
-#endif // ifndef ANALOG_RECORDER_H
+#endif  // ifndef ANALOG_RECORDER_H

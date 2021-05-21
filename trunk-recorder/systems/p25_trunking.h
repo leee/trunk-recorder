@@ -3,8 +3,9 @@
 
 #define _USE_MATH_DEFINES
 
-#include <cstdio>
-#include <iostream>
+#include <gnuradio/block.h>
+#include <gnuradio/hier_block2.h>
+#include <gnuradio/io_signature.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,11 +15,8 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/shared_ptr.hpp>
-
-#include <gnuradio/hier_block2.h>
-#include <gnuradio/io_signature.h>
-
-#include <gnuradio/block.h>
+#include <cstdio>
+#include <iostream>
 
 #if GNURADIO_VERSION < 0x030800
 #include <gnuradio/analog/sig_source_c.h>
@@ -33,39 +31,30 @@
 #include <gnuradio/filter/fir_filter_blk.h>
 #endif
 
+#include <gnuradio/analog/feedforward_agc_cc.h>
+#include <gnuradio/analog/pll_freqdet_cf.h>
+#include <gnuradio/analog/quadrature_demod_cf.h>
 #include <gnuradio/blocks/complex_to_arg.h>
 #include <gnuradio/blocks/short_to_float.h>
-
+#include <gnuradio/digital/diff_phasor_cc.h>
 #include <gnuradio/filter/fft_filter_ccf.h>
 #include <gnuradio/filter/fft_filter_fff.h>
 #include <gnuradio/filter/firdes.h>
 #include <gnuradio/filter/pfb_arb_resampler_ccf.h>
-
-#include <gnuradio/analog/feedforward_agc_cc.h>
-#include <gnuradio/analog/pll_freqdet_cf.h>
-#include <gnuradio/analog/quadrature_demod_cf.h>
-
-#include <gnuradio/digital/diff_phasor_cc.h>
-
+#include <gnuradio/message.h>
+#include <gnuradio/msg_queue.h>
+#include <gr_blocks/freq_xlating_fft_filter.h>
 #include <op25_repeater/fsk4_demod_ff.h>
 #include <op25_repeater/fsk4_slicer_fb.h>
 #include <op25_repeater/gardner_costas_cc.h>
 #include <op25_repeater/include/op25_repeater/p25_frame_assembler.h>
 
-#include <gnuradio/message.h>
-#include <gnuradio/msg_queue.h>
-
-#include <gr_blocks/freq_xlating_fft_filter.h>
-
 class p25_trunking;
 
 typedef boost::shared_ptr<p25_trunking> p25_trunking_sptr;
 
-p25_trunking_sptr make_p25_trunking(double f,
-                                    double c,
-                                    long s,
-                                    gr::msg_queue::sptr queue,
-                                    bool qpsk,
+p25_trunking_sptr make_p25_trunking(double f, double c, long s,
+                                    gr::msg_queue::sptr queue, bool qpsk,
                                     int sys_num);
 
 class p25_trunking : public gr::hier_block2 {
@@ -73,22 +62,15 @@ class p25_trunking : public gr::hier_block2 {
     long decim;
     long decim2;
   };
-  friend p25_trunking_sptr make_p25_trunking(double f,
-                                             double c,
-                                             long s,
+  friend p25_trunking_sptr make_p25_trunking(double f, double c, long s,
                                              gr::msg_queue::sptr queue,
-                                             bool qpsk,
-                                             int sys_num);
+                                             bool qpsk, int sys_num);
 
-protected:
-  p25_trunking(double f,
-               double c,
-               long s,
-               gr::msg_queue::sptr queue,
-               bool qpsk,
+ protected:
+  p25_trunking(double f, double c, long s, gr::msg_queue::sptr queue, bool qpsk,
                int sys_num);
 
-public:
+ public:
   ~p25_trunking();
 
   void set_center(double c);
@@ -102,7 +84,7 @@ public:
   gr::msg_queue::sptr traffic_queue;
   gr::msg_queue::sptr rx_queue;
 
-private:
+ private:
   p25_trunking::DecimSettings get_decim(long speed);
   void generate_arb_taps();
   void initialize_prefilter();
@@ -165,4 +147,4 @@ private:
   gr::op25_repeater::gardner_costas_cc::sptr costas_clock;
 };
 
-#endif // ifndef P25_TRUNKING_H
+#endif  // ifndef P25_TRUNKING_H
