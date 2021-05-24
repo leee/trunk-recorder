@@ -66,7 +66,7 @@ analog_recorder::analog_recorder(Source *src)
 
   //int samp_per_sym        = 10;
   system_channel_rate = 96000; //4800 * samp_per_sym;
-  wave_sample_rate = 16000;    // Must be an integer decimation of system_channel_rate
+  wave_sample_rate = 8000;     // Must be an integer decimation of system_channel_rate
                                /*  int decim               = floor(samp_rate / 384000);
 
   double pre_channel_rate = samp_rate / decim;*/
